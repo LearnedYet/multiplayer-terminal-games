@@ -1,0 +1,18 @@
+package main
+
+import (
+	"fmt"
+)
+
+func main() {
+	savedNumbers := make(chan int, 1)
+
+	select {
+	case savedNumbers <- 90:
+		fmt.Println("发送成功")
+	default:
+		fmt.Println("发送被跳过")
+	}
+
+	fmt.Println("函数继续执行")
+}

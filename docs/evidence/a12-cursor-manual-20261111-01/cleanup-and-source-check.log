@@ -1,0 +1,12 @@
+Read-only cleanup/source check after user screenshots. No new tests or program startup.
+Command: Get-NetTCPConnection -State Listen -ErrorAction Stop | Where-Object LocalPort -EQ 8081
+No TCP 8081 listener at this check.
+Same as automatically tested source: C:\Dev\Go\A\cmd\mineserver\main.go = True
+Same as automatically tested source: C:\Dev\Go\A\cmd\mineserver\main_test.go = True
+Tracked changes:
+warning: in the working copy of 'cmd/mineserver/main.go', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'internal/server/hub.go', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'internal/server/hub_test.go', LF will be replaced by CRLF the next time Git touches it
+cmd/mineserver/main.go
+internal/server/hub.go
+internal/server/hub_test.go

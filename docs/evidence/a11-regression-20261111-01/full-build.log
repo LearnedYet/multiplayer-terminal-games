@@ -1,0 +1,5 @@
+Working directory: C:\Dev\Go\A
+Environment: GOWORK=off (process-local)
+Command: go build -mod=readonly ./...
+(no output)
+Exit code: 0

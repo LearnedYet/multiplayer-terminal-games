@@ -1,0 +1,13 @@
+Working directory: C:\Users\c8618\AppData\Local\Temp\a11-regression-20261111-01\old-implementation
+Environment: GOWORK=off (process-local)
+Go module: C:\Users\c8618\AppData\Local\Temp\a11-regression-20261111-01\old-implementation\go.mod
+Baseline business source: 488dd313bc13de387d12a24f5d05a5c28bed5899
+Test SHA256: E99A69D8BBC9C015F03737299787255AAF997A0BCADFE64EFE5271460CB9C02C
+Command: go test -mod=readonly ./internal/server -run '^TestHubForwardSetModeSendsMessage$' -count=1 -v
+=== RUN   TestHubForwardSetModeSendsMessage
+    hub_test.go:219: mode channel received no message
+--- FAIL: TestHubForwardSetModeSendsMessage (0.00s)
+FAIL
+FAIL	github.com/siyad01/multiplayer-terminal-games/internal/server	0.459s
+FAIL
+Exit code: 1

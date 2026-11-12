@@ -1,0 +1,870 @@
+diff internal/server/hub.go.orig internal/server/hub.go
+--- internal/server/hub.go.orig
++++ internal/server/hub.go
+@@ -1,210 +1,210 @@
+-// internal/server/hub.go — full replacement
+-
+-package server
+-
+-import (
+-	"log"
+-
+-	"github.com/siyad01/multiplayer-terminal-games/internal/protocol"
+-	"github.com/siyad01/multiplayer-terminal-games/internal/snake"
+-)
+-
+-type Client struct {
+-	id   uint8
+-	name string
+-	send chan []byte
+-	hub  *Hub
+-}
+-
+-type registerMsg struct{ client *Client }
+-type unregisterMsg struct{ client *Client }
+-type rejoinMsg struct{ client *Client } // play again — no new connection
+-
+-type Hub struct {
+-	clients    map[uint8]*Client
+-	register   chan registerMsg
+-	unregister chan unregisterMsg
+-	rejoin     chan rejoinMsg
+-
+-	broadcastCh <-chan []byte
+-	inputCh     chan<- snake.InputMsg
+-	joinCh      chan<- snake.JoinMsg
+-	leaveCh     chan<- snake.LeaveMsg
+-	startCh     chan<- snake.StartMsg
+-	setTimeCh   chan<- snake.SetTimeMsg
+-	setModeCh   chan<- snake.SetModeMsg
+-}
+-
+-func NewHub(
+-	broadcastCh <-chan []byte,
+-	inputCh chan<- snake.InputMsg,
+-	joinCh chan<- snake.JoinMsg,
+-	leaveCh chan<- snake.LeaveMsg,
+-	incomingStartCh chan<- snake.StartMsg,
+-	incomingTimeCh chan<- snake.SetTimeMsg,
+-	setModeCh chan<- snake.SetModeMsg,
+-) *Hub {
+-	return &Hub{
+-		clients:     make(map[uint8]*Client),
+-		register:    make(chan registerMsg, 16),
+-		unregister:  make(chan unregisterMsg, 16),
+-		rejoin:      make(chan rejoinMsg, 16),
+-		broadcastCh: broadcastCh,
+-		inputCh:     inputCh,
+-		joinCh:      joinCh,
+-		leaveCh:     leaveCh,
+-		startCh:     incomingStartCh,
+-		setTimeCh:   incomingTimeCh,
+-		setModeCh:   setModeCh,
+-	}
+-}
+-
+-func (h *Hub) assignID() (uint8, bool) {
+-	for id := uint8(0); id < protocol.MaxPlayers; id++ {
+-		if _, used := h.clients[id]; !used {
+-			return id, true
+-		}
+-	}
+-	return 0, false
+-}
+-
+-func (h *Hub) sendToClient(c *Client, data []byte) bool {
+-	// Safe send — recover from send on closed channel
+-	defer func() { recover() }()
+-	select {
+-	case c.send <- data:
+-		return true
+-	default:
+-		return false
+-	}
+-}
+-
+-func (h *Hub) Run() {
+-	log.Println("hub started")
+-	for {
+-		select {
+-
+-		case msg := <-h.register:
+-			c := msg.client
+-			id, ok := h.assignID()
+-			if !ok {
+-				// safely close — client goroutines haven't started yet
+-				close(c.send)
+-				log.Println("hub: rejected — server full")
+-				continue
+-			}
+-			c.id = id
+-			h.clients[id] = c
+-			log.Printf("hub: registered (id=%d name=%s total=%d)",
+-				c.id, c.name, len(h.clients))
+-
+-			h.sendToClient(c, protocol.EncodeWelcome(c.id))
+-
+-			resultCh := make(chan bool, 1)
+-			h.joinCh <- snake.JoinMsg{
+-				PlayerID:   c.id,
+-				Name:       c.name,
+-				ResultChan: resultCh,
+-			}
+-			go func(c *Client, resultCh chan bool) {
+-				ok := <-resultCh
+-				if !ok {
+-					h.sendToClient(c,
+-						protocol.EncodeError("game in progress — wait for next round"))
+-				}
+-			}(c, resultCh)
+-
+-		case msg := <-h.rejoin:
+-			// Same client, same connection — just tell loop to add them to lobby
+-			c := msg.client
+-			if _, exists := h.clients[c.id]; !exists {
+-				// Client was already unregistered — ignore
+-				continue
+-			}
+-			log.Printf("hub: client %d rejoin lobby", c.id)
+-			resultCh := make(chan bool, 1)
+-			h.joinCh <- snake.JoinMsg{
+-				PlayerID:   c.id,
+-				Name:       c.name,
+-				ResultChan: resultCh,
+-			}
+-			go func(c *Client, resultCh chan bool) {
+-				<-resultCh // drain result, ignore value
+-			}(c, resultCh)
+-
+-		case msg := <-h.unregister:
+-			c := msg.client
+-			existing, ok := h.clients[c.id]
+-			if !ok || existing != c {
+-				// Already replaced or removed — don't double-close
+-				log.Printf("hub: unregister ignored for stale client id=%d", c.id)
+-				continue
+-			}
+-			delete(h.clients, c.id)
+-			// Safe close with recover
+-			func() {
+-				defer recover()
+-				close(c.send)
+-			}()
+-			log.Printf("hub: unregistered (id=%d total=%d)", c.id, len(h.clients))
+-			h.leaveCh <- snake.LeaveMsg{PlayerID: c.id}
+-
+-		case data := <-h.broadcastCh:
+-			for id, c := range h.clients {
+-				if !h.sendToClient(c, data) {
+-					log.Printf("hub: client %d too slow, dropping", id)
+-					delete(h.clients, id)
+-					func() {
+-						defer recover()
+-						close(c.send)
+-					}()
+-				}
+-			}
+-		}
+-	}
+-}
+-
+-func (h *Hub) Register(c *Client)   { h.register <- registerMsg{client: c} }
+-func (h *Hub) Unregister(c *Client) { h.unregister <- unregisterMsg{client: c} }
+-func (h *Hub) Rejoin(c *Client)     { h.rejoin <- rejoinMsg{client: c} }
+-
+-func (h *Hub) NewClient(name string) *Client {
+-	return &Client{
+-		id:   0xFF,
+-		name: name,
+-		send: make(chan []byte, 256),
+-		hub:  h,
+-	}
+-}
+-
+-func (h *Hub) ForwardInput(playerID uint8, dir protocol.Direction) {
+-	select {
+-	case h.inputCh <- snake.InputMsg{PlayerID: playerID, Dir: dir}:
+-	default:
+-	}
+-}
+-
+-func (h *Hub) ForwardStart(playerID uint8) {
+-	select {
+-	case h.startCh <- snake.StartMsg{PlayerID: playerID}:
+-	default:
+-	}
+-}
+-
+-func (h *Hub) ForwardSetTime(playerID uint8, seconds uint16) {
+-	select {
+-	case h.setTimeCh <- snake.SetTimeMsg{PlayerID: playerID, Seconds: seconds}:
+-	default:
+-	}
+-}
+-
+-// ForwardSetMode
+-func (h *Hub) ForwardSetMode(playerID uint8, mode protocol.GameMode) {
+-	select {
+-	case h.setModeCh <- snake.SetModeMsg{PlayerID: playerID, Mode: mode}:
+-	default:
+-	}
+-}
+-
+-func (c *Client) ID() uint8               { return c.id }
+-func (c *Client) SendChan() <-chan []byte { return c.send }
++// internal/server/hub.go — full replacement
++
++package server
++
++import (
++	"log"
++
++	"github.com/siyad01/multiplayer-terminal-games/internal/protocol"
++	"github.com/siyad01/multiplayer-terminal-games/internal/snake"
++)
++
++type Client struct {
++	id   uint8
++	name string
++	send chan []byte
++	hub  *Hub
++}
++
++type registerMsg struct{ client *Client }
++type unregisterMsg struct{ client *Client }
++type rejoinMsg struct{ client *Client } // play again — no new connection
++
++type Hub struct {
++	clients    map[uint8]*Client
++	register   chan registerMsg
++	unregister chan unregisterMsg
++	rejoin     chan rejoinMsg
++
++	broadcastCh <-chan []byte
++	inputCh     chan<- snake.InputMsg
++	joinCh      chan<- snake.JoinMsg
++	leaveCh     chan<- snake.LeaveMsg
++	startCh     chan<- snake.StartMsg
++	setTimeCh   chan<- snake.SetTimeMsg
++	setModeCh   chan<- snake.SetModeMsg
++}
++
++func NewHub(
++	broadcastCh <-chan []byte,
++	inputCh chan<- snake.InputMsg,
++	joinCh chan<- snake.JoinMsg,
++	leaveCh chan<- snake.LeaveMsg,
++	incomingStartCh chan<- snake.StartMsg,
++	incomingTimeCh chan<- snake.SetTimeMsg,
++	setModeCh chan<- snake.SetModeMsg,
++) *Hub {
++	return &Hub{
++		clients:     make(map[uint8]*Client),
++		register:    make(chan registerMsg, 16),
++		unregister:  make(chan unregisterMsg, 16),
++		rejoin:      make(chan rejoinMsg, 16),
++		broadcastCh: broadcastCh,
++		inputCh:     inputCh,
++		joinCh:      joinCh,
++		leaveCh:     leaveCh,
++		startCh:     incomingStartCh,
++		setTimeCh:   incomingTimeCh,
++		setModeCh:   setModeCh,
++	}
++}
++
++func (h *Hub) assignID() (uint8, bool) {
++	for id := uint8(0); id < protocol.MaxPlayers; id++ {
++		if _, used := h.clients[id]; !used {
++			return id, true
++		}
++	}
++	return 0, false
++}
++
++func (h *Hub) sendToClient(c *Client, data []byte) bool {
++	// Safe send — recover from send on closed channel
++	defer func() { recover() }()
++	select {
++	case c.send <- data:
++		return true
++	default:
++		return false
++	}
++}
++
++func (h *Hub) Run() {
++	log.Println("hub started")
++	for {
++		select {
++
++		case msg := <-h.register:
++			c := msg.client
++			id, ok := h.assignID()
++			if !ok {
++				// safely close — client goroutines haven't started yet
++				close(c.send)
++				log.Println("hub: rejected — server full")
++				continue
++			}
++			c.id = id
++			h.clients[id] = c
++			log.Printf("hub: registered (id=%d name=%s total=%d)",
++				c.id, c.name, len(h.clients))
++
++			h.sendToClient(c, protocol.EncodeWelcome(c.id))
++
++			resultCh := make(chan bool, 1)
++			h.joinCh <- snake.JoinMsg{
++				PlayerID:   c.id,
++				Name:       c.name,
++				ResultChan: resultCh,
++			}
++			go func(c *Client, resultCh chan bool) {
++				ok := <-resultCh
++				if !ok {
++					h.sendToClient(c,
++						protocol.EncodeError("game in progress — wait for next round"))
++				}
++			}(c, resultCh)
++
++		case msg := <-h.rejoin:
++			// Same client, same connection — just tell loop to add them to lobby
++			c := msg.client
++			if _, exists := h.clients[c.id]; !exists {
++				// Client was already unregistered — ignore
++				continue
++			}
++			log.Printf("hub: client %d rejoin lobby", c.id)
++			resultCh := make(chan bool, 1)
++			h.joinCh <- snake.JoinMsg{
++				PlayerID:   c.id,
++				Name:       c.name,
++				ResultChan: resultCh,
++			}
++			go func(c *Client, resultCh chan bool) {
++				<-resultCh // drain result, ignore value
++			}(c, resultCh)
++
++		case msg := <-h.unregister:
++			c := msg.client
++			existing, ok := h.clients[c.id]
++			if !ok || existing != c {
++				// Already replaced or removed — don't double-close
++				log.Printf("hub: unregister ignored for stale client id=%d", c.id)
++				continue
++			}
++			delete(h.clients, c.id)
++			// Safe close with recover
++			func() {
++				defer recover()
++				close(c.send)
++			}()
++			log.Printf("hub: unregistered (id=%d total=%d)", c.id, len(h.clients))
++			h.leaveCh <- snake.LeaveMsg{PlayerID: c.id}
++
++		case data := <-h.broadcastCh:
++			for id, c := range h.clients {
++				if !h.sendToClient(c, data) {
++					log.Printf("hub: client %d too slow, dropping", id)
++					delete(h.clients, id)
++					func() {
++						defer recover()
++						close(c.send)
++					}()
++				}
++			}
++		}
++	}
++}
++
++func (h *Hub) Register(c *Client)   { h.register <- registerMsg{client: c} }
++func (h *Hub) Unregister(c *Client) { h.unregister <- unregisterMsg{client: c} }
++func (h *Hub) Rejoin(c *Client)     { h.rejoin <- rejoinMsg{client: c} }
++
++func (h *Hub) NewClient(name string) *Client {
++	return &Client{
++		id:   0xFF,
++		name: name,
++		send: make(chan []byte, 256),
++		hub:  h,
++	}
++}
++
++func (h *Hub) ForwardInput(playerID uint8, dir protocol.Direction) {
++	select {
++	case h.inputCh <- snake.InputMsg{PlayerID: playerID, Dir: dir}:
++	default:
++	}
++}
++
++func (h *Hub) ForwardStart(playerID uint8) {
++	select {
++	case h.startCh <- snake.StartMsg{PlayerID: playerID}:
++	default:
++	}
++}
++
++func (h *Hub) ForwardSetTime(playerID uint8, seconds uint16) {
++	select {
++	case h.setTimeCh <- snake.SetTimeMsg{PlayerID: playerID, Seconds: seconds}:
++	default:
++	}
++}
++
++// ForwardSetMode
++func (h *Hub) ForwardSetMode(playerID uint8, mode protocol.GameMode) {
++	select {
++	case h.setModeCh <- snake.SetModeMsg{PlayerID: playerID, Mode: mode}:
++	default:
++	}
++}
++
++func (c *Client) ID() uint8               { return c.id }
++func (c *Client) SendChan() <-chan []byte { return c.send }
+diff internal/server/hub_test.go.orig internal/server/hub_test.go
+--- internal/server/hub_test.go.orig
++++ internal/server/hub_test.go
+@@ -1,221 +1,221 @@
+-// internal/server/hub_test.go
+-// Tests hub client registration, ID recycling, and broadcast.
+-
+-package server_test
+-
+-import (
+-	"fmt"
+-	"testing"
+-	"time"
+-
+-	"github.com/siyad01/multiplayer-terminal-games/internal/protocol"
+-	"github.com/siyad01/multiplayer-terminal-games/internal/server"
+-	"github.com/siyad01/multiplayer-terminal-games/internal/snake"
+-)
+-
+-// newTestHub creates a hub wired to buffered channels.
+-// All channels are drained by the test to prevent blocking.
+-func newTestHub() (
+-	*server.Hub,
+-	chan []byte, // broadcastCh (server reads from this)
+-	chan snake.InputMsg,
+-	chan snake.JoinMsg,
+-	chan snake.LeaveMsg,
+-	chan snake.StartMsg,
+-	chan snake.SetTimeMsg,
+-	chan snake.SetModeMsg,
+-) {
+-	broadcastCh := make(chan []byte, 64)
+-	inputCh := make(chan snake.InputMsg, 32)
+-	joinCh := make(chan snake.JoinMsg, 8)
+-	leaveCh := make(chan snake.LeaveMsg, 8)
+-	startCh := make(chan snake.StartMsg, 4)
+-	setTimeCh := make(chan snake.SetTimeMsg, 4)
+-	setModeCh := make(chan snake.SetModeMsg, 4)
+-
+-	h := server.NewHub(broadcastCh, inputCh, joinCh, leaveCh,
+-		startCh, setTimeCh, setModeCh)
+-
+-	return h, broadcastCh, inputCh, joinCh, leaveCh,
+-		startCh, setTimeCh, setModeCh
+-}
+-
+-// drainJoin reads and answers all pending JoinMsgs.
+-func drainJoin(joinCh chan snake.JoinMsg) {
+-	for {
+-		select {
+-		case msg := <-joinCh:
+-			msg.ResultChan <- true
+-		default:
+-			return
+-		}
+-	}
+-}
+-
+-func TestHubRegisterAssignsLowestID(t *testing.T) {
+-	h, _, _, joinCh, leaveCh, _, _, _ := newTestHub()
+-	go h.Run()
+-	go func() {
+-		for msg := range joinCh {
+-			msg.ResultChan <- true
+-		}
+-	}()
+-	go func() {
+-		for range leaveCh {
+-		}
+-	}()
+-
+-	c0 := h.NewClient("alice")
+-	c1 := h.NewClient("bob")
+-	h.Register(c0)
+-	h.Register(c1)
+-
+-	time.Sleep(50 * time.Millisecond)
+-
+-	if c0.ID() != 0 {
+-		t.Fatalf("first client should get ID 0, got %d", c0.ID())
+-	}
+-	if c1.ID() != 1 {
+-		t.Fatalf("second client should get ID 1, got %d", c1.ID())
+-	}
+-}
+-
+-func TestHubIDRecycling(t *testing.T) {
+-	h, _, _, joinCh, leaveCh, _, _, _ := newTestHub()
+-	go h.Run()
+-	go func() {
+-		for msg := range joinCh {
+-			msg.ResultChan <- true
+-		}
+-	}()
+-
+-	c0 := h.NewClient("alice")
+-	h.Register(c0)
+-	time.Sleep(30 * time.Millisecond)
+-
+-	id0 := c0.ID()
+-	h.Unregister(c0)
+-	time.Sleep(30 * time.Millisecond)
+-
+-	// Drain leave
+-	select {
+-	case <-leaveCh:
+-	default:
+-	}
+-
+-	// New client should get ID 0 back
+-	c1 := h.NewClient("bob")
+-	h.Register(c1)
+-	time.Sleep(30 * time.Millisecond)
+-
+-	if c1.ID() != id0 {
+-		t.Fatalf("recycled ID should be %d, got %d", id0, c1.ID())
+-	}
+-}
+-
+-func TestHubBroadcastReachesAllClients(t *testing.T) {
+-	h, broadcastCh, _, joinCh, leaveCh, _, _, _ := newTestHub()
+-	go h.Run()
+-	go func() {
+-		for msg := range joinCh {
+-			msg.ResultChan <- true
+-		}
+-	}()
+-	go func() {
+-		for range leaveCh {
+-		}
+-	}()
+-
+-	c0 := h.NewClient("alice")
+-	c1 := h.NewClient("bob")
+-	h.Register(c0)
+-	h.Register(c1)
+-	time.Sleep(50 * time.Millisecond)
+-
+-	// Drain welcome messages from send channels
+-	drain := func(ch <-chan []byte) {
+-		for {
+-			select {
+-			case <-ch:
+-			default:
+-				return
+-			}
+-		}
+-	}
+-	time.Sleep(20 * time.Millisecond)
+-	drain(c0.SendChan())
+-	drain(c1.SendChan())
+-
+-	// Send a broadcast
+-	msg := protocol.EncodeGameOver(0)
+-	broadcastCh <- msg
+-
+-	time.Sleep(50 * time.Millisecond)
+-
+-	// Both clients should receive it
+-	received := func(ch <-chan []byte) bool {
+-		select {
+-		case <-ch:
+-			return true
+-		default:
+-			return false
+-		}
+-	}
+-
+-	if !received(c0.SendChan()) {
+-		t.Error("client 0 did not receive broadcast")
+-	}
+-	if !received(c1.SendChan()) {
+-		t.Error("client 1 did not receive broadcast")
+-	}
+-}
+-
+-func TestHubMaxPlayers(t *testing.T) {
+-	h, _, _, joinCh, leaveCh, _, _, _ := newTestHub()
+-	go h.Run()
+-	go func() {
+-		for msg := range joinCh {
+-			msg.ResultChan <- true
+-		}
+-	}()
+-	go func() {
+-		for range leaveCh {
+-		}
+-	}()
+-
+-	clients := make([]*server.Client, protocol.MaxPlayers+1)
+-	for i := range clients {
+-		clients[i] = h.NewClient(fmt.Sprintf("p%d", i))
+-		h.Register(clients[i])
+-	}
+-	time.Sleep(100 * time.Millisecond)
+-
+-	// Count clients with valid IDs (0-3)
+-	valid := 0
+-	for _, c := range clients {
+-		if c.ID() < protocol.MaxPlayers {
+-			valid++
+-		}
+-	}
+-	if valid > protocol.MaxPlayers {
+-		t.Fatalf("hub accepted %d clients, max is %d", valid, protocol.MaxPlayers)
+-	}
+-}
+-
+-func TestHubForwardSetModeSendsMessage(t *testing.T) {
+-	h, _, _, _, _, _, _, setModeCh := newTestHub()
+-	h.ForwardSetMode(1, protocol.ModeLastStanding)
+-
+-	select {
+-	case msg := <-setModeCh:
+-		if msg.PlayerID != 1 {
+-			t.Errorf("玩家id不对 期望是1, 实际是%d", msg.PlayerID)
+-		}
+-		if msg.Mode != protocol.ModeLastStanding {
+-			t.Fatalf("游戏模式不对,期望是%v,实际是 %v", protocol.ModeLastStanding, msg.Mode)
+-		}
+-
+-	default:
+-		t.Fatal("mode channel received no message")
+-	}
+-}
++// internal/server/hub_test.go
++// Tests hub client registration, ID recycling, and broadcast.
++
++package server_test
++
++import (
++	"fmt"
++	"testing"
++	"time"
++
++	"github.com/siyad01/multiplayer-terminal-games/internal/protocol"
++	"github.com/siyad01/multiplayer-terminal-games/internal/server"
++	"github.com/siyad01/multiplayer-terminal-games/internal/snake"
++)
++
++// newTestHub creates a hub wired to buffered channels.
++// All channels are drained by the test to prevent blocking.
++func newTestHub() (
++	*server.Hub,
++	chan []byte, // broadcastCh (server reads from this)
++	chan snake.InputMsg,
++	chan snake.JoinMsg,
++	chan snake.LeaveMsg,
++	chan snake.StartMsg,
++	chan snake.SetTimeMsg,
++	chan snake.SetModeMsg,
++) {
++	broadcastCh := make(chan []byte, 64)
++	inputCh := make(chan snake.InputMsg, 32)
++	joinCh := make(chan snake.JoinMsg, 8)
++	leaveCh := make(chan snake.LeaveMsg, 8)
++	startCh := make(chan snake.StartMsg, 4)
++	setTimeCh := make(chan snake.SetTimeMsg, 4)
++	setModeCh := make(chan snake.SetModeMsg, 4)
++
++	h := server.NewHub(broadcastCh, inputCh, joinCh, leaveCh,
++		startCh, setTimeCh, setModeCh)
++
++	return h, broadcastCh, inputCh, joinCh, leaveCh,
++		startCh, setTimeCh, setModeCh
++}
++
++// drainJoin reads and answers all pending JoinMsgs.
++func drainJoin(joinCh chan snake.JoinMsg) {
++	for {
++		select {
++		case msg := <-joinCh:
++			msg.ResultChan <- true
++		default:
++			return
++		}
++	}
++}
++
++func TestHubRegisterAssignsLowestID(t *testing.T) {
++	h, _, _, joinCh, leaveCh, _, _, _ := newTestHub()
++	go h.Run()
++	go func() {
++		for msg := range joinCh {
++			msg.ResultChan <- true
++		}
++	}()
++	go func() {
++		for range leaveCh {
++		}
++	}()
++
++	c0 := h.NewClient("alice")
++	c1 := h.NewClient("bob")
++	h.Register(c0)
++	h.Register(c1)
++
++	time.Sleep(50 * time.Millisecond)
++
++	if c0.ID() != 0 {
++		t.Fatalf("first client should get ID 0, got %d", c0.ID())
++	}
++	if c1.ID() != 1 {
++		t.Fatalf("second client should get ID 1, got %d", c1.ID())
++	}
++}
++
++func TestHubIDRecycling(t *testing.T) {
++	h, _, _, joinCh, leaveCh, _, _, _ := newTestHub()
++	go h.Run()
++	go func() {
++		for msg := range joinCh {
++			msg.ResultChan <- true
++		}
++	}()
++
++	c0 := h.NewClient("alice")
++	h.Register(c0)
++	time.Sleep(30 * time.Millisecond)
++
++	id0 := c0.ID()
++	h.Unregister(c0)
++	time.Sleep(30 * time.Millisecond)
++
++	// Drain leave
++	select {
++	case <-leaveCh:
++	default:
++	}
++
++	// New client should get ID 0 back
++	c1 := h.NewClient("bob")
++	h.Register(c1)
++	time.Sleep(30 * time.Millisecond)
++
++	if c1.ID() != id0 {
++		t.Fatalf("recycled ID should be %d, got %d", id0, c1.ID())
++	}
++}
++
++func TestHubBroadcastReachesAllClients(t *testing.T) {
++	h, broadcastCh, _, joinCh, leaveCh, _, _, _ := newTestHub()
++	go h.Run()
++	go func() {
++		for msg := range joinCh {
++			msg.ResultChan <- true
++		}
++	}()
++	go func() {
++		for range leaveCh {
++		}
++	}()
++
++	c0 := h.NewClient("alice")
++	c1 := h.NewClient("bob")
++	h.Register(c0)
++	h.Register(c1)
++	time.Sleep(50 * time.Millisecond)
++
++	// Drain welcome messages from send channels
++	drain := func(ch <-chan []byte) {
++		for {
++			select {
++			case <-ch:
++			default:
++				return
++			}
++		}
++	}
++	time.Sleep(20 * time.Millisecond)
++	drain(c0.SendChan())
++	drain(c1.SendChan())
++
++	// Send a broadcast
++	msg := protocol.EncodeGameOver(0)
++	broadcastCh <- msg
++
++	time.Sleep(50 * time.Millisecond)
++
++	// Both clients should receive it
++	received := func(ch <-chan []byte) bool {
++		select {
++		case <-ch:
++			return true
++		default:
++			return false
++		}
++	}
++
++	if !received(c0.SendChan()) {
++		t.Error("client 0 did not receive broadcast")
++	}
++	if !received(c1.SendChan()) {
++		t.Error("client 1 did not receive broadcast")
++	}
++}
++
++func TestHubMaxPlayers(t *testing.T) {
++	h, _, _, joinCh, leaveCh, _, _, _ := newTestHub()
++	go h.Run()
++	go func() {
++		for msg := range joinCh {
++			msg.ResultChan <- true
++		}
++	}()
++	go func() {
++		for range leaveCh {
++		}
++	}()
++
++	clients := make([]*server.Client, protocol.MaxPlayers+1)
++	for i := range clients {
++		clients[i] = h.NewClient(fmt.Sprintf("p%d", i))
++		h.Register(clients[i])
++	}
++	time.Sleep(100 * time.Millisecond)
++
++	// Count clients with valid IDs (0-3)
++	valid := 0
++	for _, c := range clients {
++		if c.ID() < protocol.MaxPlayers {
++			valid++
++		}
++	}
++	if valid > protocol.MaxPlayers {
++		t.Fatalf("hub accepted %d clients, max is %d", valid, protocol.MaxPlayers)
++	}
++}
++
++func TestHubForwardSetModeSendsMessage(t *testing.T) {
++	h, _, _, _, _, _, _, setModeCh := newTestHub()
++	h.ForwardSetMode(1, protocol.ModeLastStanding)
++
++	select {
++	case msg := <-setModeCh:
++		if msg.PlayerID != 1 {
++			t.Errorf("玩家id不对 期望是1, 实际是%d", msg.PlayerID)
++		}
++		if msg.Mode != protocol.ModeLastStanding {
++			t.Fatalf("游戏模式不对,期望是%v,实际是 %v", protocol.ModeLastStanding, msg.Mode)
++		}
++
++	default:
++		t.Fatal("mode channel received no message")
++	}
++}

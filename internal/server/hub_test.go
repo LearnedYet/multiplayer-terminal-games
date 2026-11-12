@@ -4,9 +4,9 @@
 package server_test
 
 import (
+	"fmt"
 	"testing"
 	"time"
-	"fmt"
 
 	"github.com/siyad01/multiplayer-terminal-games/internal/protocol"
 	"github.com/siyad01/multiplayer-terminal-games/internal/server"
@@ -17,7 +17,7 @@ import (
 // All channels are drained by the test to prevent blocking.
 func newTestHub() (
 	*server.Hub,
-	chan []byte,        // broadcastCh (server reads from this)
+	chan []byte, // broadcastCh (server reads from this)
 	chan snake.InputMsg,
 	chan snake.JoinMsg,
 	chan snake.LeaveMsg,
@@ -26,12 +26,12 @@ func newTestHub() (
 	chan snake.SetModeMsg,
 ) {
 	broadcastCh := make(chan []byte, 64)
-	inputCh     := make(chan snake.InputMsg, 32)
-	joinCh      := make(chan snake.JoinMsg, 8)
-	leaveCh     := make(chan snake.LeaveMsg, 8)
-	startCh     := make(chan snake.StartMsg, 4)
-	setTimeCh   := make(chan snake.SetTimeMsg, 4)
-	setModeCh   := make(chan snake.SetModeMsg, 4)
+	inputCh := make(chan snake.InputMsg, 32)
+	joinCh := make(chan snake.JoinMsg, 8)
+	leaveCh := make(chan snake.LeaveMsg, 8)
+	startCh := make(chan snake.StartMsg, 4)
+	setTimeCh := make(chan snake.SetTimeMsg, 4)
+	setModeCh := make(chan snake.SetModeMsg, 4)
 
 	h := server.NewHub(broadcastCh, inputCh, joinCh, leaveCh,
 		startCh, setTimeCh, setModeCh)
@@ -84,7 +84,9 @@ func TestHubIDRecycling(t *testing.T) {
 	h, _, _, joinCh, leaveCh, _, _, _ := newTestHub()
 	go h.Run()
 	go func() {
-		for msg := range joinCh { msg.ResultChan <- true }
+		for msg := range joinCh {
+			msg.ResultChan <- true
+		}
 	}()
 
 	c0 := h.NewClient("alice")
@@ -115,10 +117,13 @@ func TestHubBroadcastReachesAllClients(t *testing.T) {
 	h, broadcastCh, _, joinCh, leaveCh, _, _, _ := newTestHub()
 	go h.Run()
 	go func() {
-		for msg := range joinCh { msg.ResultChan <- true }
+		for msg := range joinCh {
+			msg.ResultChan <- true
+		}
 	}()
 	go func() {
-		for range leaveCh {}
+		for range leaveCh {
+		}
 	}()
 
 	c0 := h.NewClient("alice")
@@ -169,10 +174,13 @@ func TestHubMaxPlayers(t *testing.T) {
 	h, _, _, joinCh, leaveCh, _, _, _ := newTestHub()
 	go h.Run()
 	go func() {
-		for msg := range joinCh { msg.ResultChan <- true }
+		for msg := range joinCh {
+			msg.ResultChan <- true
+		}
 	}()
 	go func() {
-		for range leaveCh {}
+		for range leaveCh {
+		}
 	}()
 
 	clients := make([]*server.Client, protocol.MaxPlayers+1)
@@ -191,5 +199,23 @@ func TestHubMaxPlayers(t *testing.T) {
 	}
 	if valid > protocol.MaxPlayers {
 		t.Fatalf("hub accepted %d clients, max is %d", valid, protocol.MaxPlayers)
+	}
+}
+
+func TestHubForwardSetModeSendsMessage(t *testing.T) {
+	h, _, _, _, _, _, _, setModeCh := newTestHub()
+	h.ForwardSetMode(1, protocol.ModeLastStanding)
+
+	select {
+	case msg := <-setModeCh:
+		if msg.PlayerID != 1 {
+			t.Errorf("玩家id不对 期望是1, 实际是%d", msg.PlayerID)
+		}
+		if msg.Mode != protocol.ModeLastStanding {
+			t.Fatalf("游戏模式不对,期望是%v,实际是 %v", protocol.ModeLastStanding, msg.Mode)
+		}
+
+	default:
+		t.Fatal("mode channel received no message")
 	}
 }

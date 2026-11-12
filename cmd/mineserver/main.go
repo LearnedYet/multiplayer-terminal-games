@@ -51,11 +51,43 @@ func main() {
 		}
 	}()
 
+	http.HandleFunc("/ws", mineWSHandler(hub, mineCh, setModeCh))
+
+	srv := &http.Server{Addr: ":8081", Handler: nil}
+
+	sigCh := make(chan os.Signal, 1)
+	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
+
+	go func() {
+		<-sigCh
+		log.Println("shutting down minesweeper server...")
+		close(stopCh)
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		if err := srv.Shutdown(ctx); err != nil {
+			log.Printf("shutdown error: %v", err)
+		}
+	}()
+
+	log.Printf("minesweeper server listening on :8081")
+	log.Printf("connect: go run cmd/client/main.go -name yourname")
+	if err := srv.ListenAndServe(); err != http.ErrServerClosed {
+		log.Fatal(err)
+	}
+	log.Println("minesweeper server stopped cleanly")
+
+}
+
+func mineWSHandler(
+	hub *server.Hub,
+	mineCh chan minesweeper.MineInputMsg,
+	setModeCh chan minesweeper.SetModeMsg,
+) http.HandlerFunc {
 	upgrader := websocket.Upgrader{
 		CheckOrigin: func(r *http.Request) bool { return true },
 	}
 
-	http.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
 		name := r.URL.Query().Get("name")
 		if name == "" {
 			name = "anon"
@@ -123,7 +155,7 @@ func main() {
 				case protocol.MsgMineCursor:
 					if len(data) >= 4 {
 						mineCh <- minesweeper.MineInputMsg{
-							PlayerID: data[1],
+							PlayerID: c.ID(),
 							Action:   minesweeper.ActionCursor,
 							X:        data[2],
 							Y:        data[3],
@@ -133,7 +165,9 @@ func main() {
 					hub.ForwardStart(c.ID())
 				case protocol.MsgSetMineMode:
 					mode, diff, err := protocol.ParseSetMineMode(data)
-					if err != nil { continue }
+					if err != nil {
+						continue
+					}
 					setModeCh <- minesweeper.SetModeMsg{
 						PlayerID:   c.ID(),
 						Mode:       minesweeper.Mode(mode),
@@ -146,29 +180,5 @@ func main() {
 				}
 			}
 		}()
-	})
-
-	srv := &http.Server{Addr: ":8081", Handler: nil}
-
-	sigCh := make(chan os.Signal, 1)
-	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
-
-	go func() {
-		<-sigCh
-		log.Println("shutting down minesweeper server...")
-		close(stopCh)
-		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-		defer cancel()
-		if err := srv.Shutdown(ctx); err != nil {
-			log.Printf("shutdown error: %v", err)
-		}
-	}()
-
-	log.Printf("minesweeper server listening on :8081")
-	log.Printf("connect: go run cmd/client/main.go -name yourname")
-	if err := srv.ListenAndServe(); err != http.ErrServerClosed {
-		log.Fatal(err)
 	}
-	log.Println("minesweeper server stopped cleanly")
-
 }

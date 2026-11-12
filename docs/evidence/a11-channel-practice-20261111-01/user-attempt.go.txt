@@ -1,0 +1,13 @@
+package main
+
+import (
+	"fmt"
+)
+
+func main() {
+	numbers := make(chan int)
+	savedNumbers := numbers
+	savedNumbers <- 90
+	received := <-savedNumbers
+	fmt.Println("received:", received)
+}

@@ -1,0 +1,8 @@
+Purpose: compile and vet only; learner identity assertion is pending.
+Directory: C:\Dev\Go\A
+GOWORK=off (process-local)
+go version go1.27.3 windows/amd64
+488dd313bc13de387d12a24f5d05a5c28bed5899
+Command: go test -mod=readonly ./cmd/mineserver -run ^$ -count=1
+ok  	github.com/siyad01/multiplayer-terminal-games/cmd/mineserver	0.859s [no tests to run]
+Exit code: 0

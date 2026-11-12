@@ -1,0 +1,19 @@
+Purpose: run completed learner assertion against the unfixed cursor entry.
+Directory: C:\Dev\Go\A
+GOWORK=off (process-local)
+go version go1.27.3 windows/amd64
+488dd313bc13de387d12a24f5d05a5c28bed5899
+Command: go test -mod=readonly ./cmd/mineserver -run '^TestMineCursorUsesConnectionIdentity$' -count=1 -v -timeout=20s
+=== RUN   TestMineCursorUsesConnectionIdentity
+2026/11/11 19:51:22 hub started
+2026/11/11 19:51:22 hub: registered (id=0 name=alice total=1)
+2026/11/11 19:51:22 hub: registered (id=1 name=bob total=2)
+    main_test.go:109: aliceID=0 bobID=1 received={PlayerID:1 Action:2 X:3 Y:4}
+    main_test.go:112: 玩家编号不对 : 期望0,实际1
+2026/11/11 19:51:22 hub: unregistered (id=0 total=1)
+2026/11/11 19:51:22 hub: unregistered (id=1 total=0)
+--- FAIL: TestMineCursorUsesConnectionIdentity (0.02s)
+FAIL
+FAIL	github.com/siyad01/multiplayer-terminal-games/cmd/mineserver	0.867s
+FAIL
+Exit code: 1

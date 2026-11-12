@@ -1,0 +1,8 @@
+Date: 2026-11-11 (America/Los_Angeles, client date)
+Chat: project A Phase 0 / A1.1; user-operated after-fix Snake check
+Screenshot source: C:\Users\c8618\AppData\Local\Temp\codex-clipboard-60e4ad11-f65f-4f5f-9eac-537d0178d394.png
+Screenshot SHA256 (source equals copy): 8F882E5A7268276D6ACD3DF08C426410191591E73A377CA6D745F36C8F3FAA23
+Command: Get-NetTCPConnection -State Listen | Where-Object { $_.LocalPort -eq 8080 }
+No TCP listener on port 8080 after user shutdown.
+internal\server\hub.go: matches automatically tested source after newline normalization = True
+internal\server\hub_test.go: matches automatically tested source after newline normalization = True

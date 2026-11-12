@@ -1,0 +1,16 @@
+Date: 2026-11-11 (America/Los_Angeles, client date)
+Chat: project A Phase 0 / A1.1; guided select/default example
+Working directory: C:\Dev\Go\A
+Original paste snapshot: user-paste-before-wrapper-fix.go.txt; not executed.
+AI corrected only a duplicate main wrapper in the scaffold. Channel and select statements were preserved.
+Executed source snapshot: executed-source.go.txt
+Command: go version
+go version go1.27.3 windows/amd64
+Command: gofmt -w C:\Users\c8618\AppData\Local\Temp\a11-channel-20261111\main.go
+(no output)
+Exit code: 0
+Command: go run -mod=readonly C:\Users\c8618\AppData\Local\Temp\a11-channel-20261111\main.go
+发送被跳过
+函数继续执行
+Exit code: 0
+Only the standalone learner example was executed. No project tests or multiplayer verification executed.

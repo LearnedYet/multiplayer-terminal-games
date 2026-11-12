@@ -1,0 +1,17 @@
+Purpose: same regression after the learner cursor identity fix.
+Directory: C:\Dev\Go\A
+GOWORK=off (process-local)
+go version go1.27.3 windows/amd64
+488dd313bc13de387d12a24f5d05a5c28bed5899
+Command: go test -mod=readonly ./cmd/mineserver -run '^TestMineCursorUsesConnectionIdentity$' -count=1 -v -timeout=20s
+=== RUN   TestMineCursorUsesConnectionIdentity
+2026/11/11 19:55:58 hub started
+2026/11/11 19:55:58 hub: registered (id=0 name=alice total=1)
+2026/11/11 19:55:58 hub: registered (id=1 name=bob total=2)
+    main_test.go:109: aliceID=0 bobID=1 received={PlayerID:0 Action:2 X:3 Y:4}
+2026/11/11 19:55:58 hub: unregistered (id=0 total=1)
+2026/11/11 19:55:58 hub: unregistered (id=1 total=0)
+--- PASS: TestMineCursorUsesConnectionIdentity (0.02s)
+PASS
+ok  	github.com/siyad01/multiplayer-terminal-games/cmd/mineserver	0.926s
+Exit code: 0

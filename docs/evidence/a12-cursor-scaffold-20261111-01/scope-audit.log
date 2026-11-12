@@ -1,0 +1,18 @@
+Scope audit: AI handler extraction and test scaffold; identity assertion pending.
+A1.1 source unchanged: C:\Dev\Go\A\internal\server\hub.go = True
+A1.1 source unchanged: C:\Dev\Go\A\internal\server\hub_test.go = True
+Command: git diff --name-only
+cmd/mineserver/main.go
+internal/server/hub.go
+internal/server/hub_test.go
+warning: in the working copy of 'cmd/mineserver/main.go', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'internal/server/hub.go', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'internal/server/hub_test.go', LF will be replaced by CRLF the next time Git touches it
+Dependency/license diff exit code: 0
+warning: in the working copy of 'cmd/mineserver/main.go', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'internal/server/hub.go', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'internal/server/hub_test.go', LF will be replaced by CRLF the next time Git touches it
+git diff --check exit code: 0
+Command: go env GOCACHE GOTMPDIR
+C:\Users\c8618\AppData\Local\go-build
+

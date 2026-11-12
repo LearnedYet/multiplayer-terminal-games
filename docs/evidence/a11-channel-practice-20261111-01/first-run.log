@@ -1,0 +1,18 @@
+Date: 2026-11-11 (America/Los_Angeles, client date)
+Chat: project A Phase 0 / A1.1; learner channel exercise, first saved attempt
+Working directory: C:\Dev\Go\A
+Source snapshot: user-attempt.go.txt; copied before execution
+Command: go version
+go version go1.27.3 windows/amd64
+Command: go env GOMOD GOCACHE
+C:\Dev\Go\A\go.mod
+C:\Users\c8618\AppData\Local\go-build
+Command: go run -mod=readonly C:\Users\c8618\AppData\Local\Temp\a11-channel-20261111\main.go
+fatal error: all goroutines are asleep - deadlock!
+
+goroutine 1 [chan send]:
+main.main()
+	C:/Users/c8618/AppData/Local/Temp/a11-channel-20261111/main.go:10 +0x36
+exit status 2
+Exit code: 1
+Only the standalone learner exercise was run. No project tests or multiplayer verification executed.

@@ -1,0 +1,112 @@
+package main
+
+import (
+	"net/http/httptest"
+	"strings"
+	"testing"
+	"time"
+
+	"github.com/gorilla/websocket"
+	"github.com/siyad01/multiplayer-terminal-games/internal/minesweeper"
+	"github.com/siyad01/multiplayer-terminal-games/internal/protocol"
+	"github.com/siyad01/multiplayer-terminal-games/internal/server"
+	"github.com/siyad01/multiplayer-terminal-games/internal/snake"
+)
+
+const mineWSTestTimeout = 3 * time.Second
+
+func TestMineCursorUsesConnectionIdentity(t *testing.T) {
+	// AI-assisted network setup. The learner adds the identity assertion below.
+	broadcastCh := make(chan []byte, 4)
+	inputCh := make(chan snake.InputMsg, 1)
+	joinCh := make(chan snake.JoinMsg, 4)
+	leaveCh := make(chan snake.LeaveMsg, 4)
+	startCh := make(chan snake.StartMsg, 1)
+	setTimeCh := make(chan snake.SetTimeMsg, 1)
+	snakeModeCh := make(chan snake.SetModeMsg, 1)
+	mineCh := make(chan minesweeper.MineInputMsg, 4)
+	setModeCh := make(chan minesweeper.SetModeMsg, 1)
+	hub := server.NewHub(broadcastCh, inputCh, joinCh, leaveCh,
+		startCh, setTimeCh, snakeModeCh)
+	go hub.Run()
+
+	testServer := httptest.NewServer(mineWSHandler(hub, mineCh, setModeCh))
+	t.Cleanup(testServer.Close)
+	var connections []*websocket.Conn
+	t.Cleanup(func() {
+		for _, conn := range connections {
+			if err := conn.Close(); err != nil {
+				t.Errorf("close test connection: %v", err)
+			}
+		}
+		timer := time.NewTimer(mineWSTestTimeout)
+		defer timer.Stop()
+		for range connections {
+			select {
+			case <-leaveCh:
+			case <-timer.C:
+				t.Error("timed out waiting for test clients to unregister")
+				return
+			}
+		}
+	})
+
+	connectPlayer := func(name string) (*websocket.Conn, uint8) {
+		t.Helper()
+		dialer := websocket.Dialer{HandshakeTimeout: mineWSTestTimeout}
+		url := "ws" + strings.TrimPrefix(testServer.URL, "http") + "/ws?name=" + name
+		conn, _, err := dialer.Dial(url, nil)
+		if err != nil {
+			t.Fatalf("connect %s: %v", name, err)
+		}
+		connections = append(connections, conn)
+		if err := conn.SetReadDeadline(time.Now().Add(mineWSTestTimeout)); err != nil {
+			t.Fatalf("set %s read deadline: %v", name, err)
+		}
+		messageType, welcome, err := conn.ReadMessage()
+		if err != nil {
+			t.Fatalf("read %s welcome: %v", name, err)
+		}
+		if messageType != websocket.BinaryMessage || len(welcome) != 2 ||
+			protocol.MsgType(welcome[0]) != protocol.MsgWelcome {
+			t.Fatalf("unexpected %s welcome: type=%d data=%v", name, messageType, welcome)
+		}
+		playerID := welcome[1]
+		select {
+		case join := <-joinCh:
+			join.ResultChan <- true
+			if join.PlayerID != playerID || join.Name != name {
+				t.Fatalf("unexpected join: got id=%d name=%s, want id=%d name=%s",
+					join.PlayerID, join.Name, playerID, name)
+			}
+		case <-time.After(mineWSTestTimeout):
+			t.Fatalf("timed out waiting for %s join", name)
+		}
+		return conn, playerID
+	}
+
+	aliceConn, aliceID := connectPlayer("alice")
+	_, bobID := connectPlayer("bob")
+	if aliceID == bobID {
+		t.Fatalf("test needs two different player IDs, both were %d", aliceID)
+	}
+	if err := aliceConn.SetWriteDeadline(time.Now().Add(mineWSTestTimeout)); err != nil {
+		t.Fatalf("set alice write deadline: %v", err)
+	}
+	if err := aliceConn.WriteMessage(websocket.BinaryMessage, protocol.EncodeCursor(bobID, 3, 4)); err != nil {
+		t.Fatalf("send cursor claiming bob's ID: %v", err)
+	}
+
+	var msg minesweeper.MineInputMsg
+	select {
+	case msg = <-mineCh:
+	case <-time.After(mineWSTestTimeout):
+		t.Fatal("cursor message did not reach the game input channel")
+	}
+	if msg.Action != minesweeper.ActionCursor || msg.X != 3 || msg.Y != 4 {
+		t.Fatalf("wrong cursor action or position: %+v", msg)
+	}
+	t.Logf("aliceID=%d bobID=%d received=%+v", aliceID, bobID, msg)
+
+	t.Fatal("TODO: 请补充连接身份断言")
+}

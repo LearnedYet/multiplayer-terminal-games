@@ -1,0 +1,10 @@
+[
+  {
+    "Path": "C:\\Dev\\Go\\A\\cmd\\mineserver\\main.go",
+    "Hash": "3CA096367BA8E8230FC6E4748E6C2DE15352CD67D9B8B0C8415061F77D7399B2"
+  },
+  {
+    "Path": "C:\\Dev\\Go\\A\\cmd\\mineserver\\main_test.go",
+    "Hash": "C7561F0E6000FBF5A13FB163EDF663E8FEA1CDD60E1E8067629A9313DE3E1FDE"
+  }
+]

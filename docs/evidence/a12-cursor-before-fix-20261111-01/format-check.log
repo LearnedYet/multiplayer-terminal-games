@@ -1,0 +1,2 @@
+Command: gofmt -l cmd/mineserver/main.go cmd/mineserver/main_test.go
+Exit code: 0

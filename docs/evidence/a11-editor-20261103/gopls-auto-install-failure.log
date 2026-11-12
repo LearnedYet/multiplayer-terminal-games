@@ -1,0 +1,21 @@
+2026-11-03 00:11:00.546 [info] Tools environment: GOPATH=C:\Users\c8618\go, GOBIN=C:\Users\c8618\go\bin, GOTOOLCHAIN=auto
+2026-11-03 00:11:00.547 [info] Installing 1 tool at the configured GOBIN: C:\Users\c8618\go\bin
+2026-11-03 00:11:00.547 [info]   gopls
+2026-11-03 00:11:00.547 [info] 
+2026-11-03 00:11:42.715 [info] Installing golang.org/x/tools/gopls@latest FAILED
+2026-11-03 00:11:42.715 [info] {
+ "code": 1,
+ "killed": false,
+ "signal": null,
+ "cmd": "C:\\Program Files\\Go\\bin\\go.exe install -v golang.org/x/tools/gopls@latest",
+ "stdout": "",
+ "stderr": "go: golang.org/x/tools/gopls@latest: module golang.org/x/tools/gopls: Get \"https://proxy.golang.org/golang.org/x/tools/gopls/@v/list\": dial tcp 142.251.33.209:443: connectex: A connection attempt failed because the connected party did not properly respond after a period of time, or established connection failed because connected host has failed to respond.\n"
+}
+2026-11-03 00:11:42.716 [info] 
+2026-11-03 00:11:42.716 [info] 1 tools failed to install.
+
+2026-11-03 00:11:42.716 [info] gopls: failed to install gopls(golang.org/x/tools/gopls@latest): Error: Command failed: C:\Program Files\Go\bin\go.exe install -v golang.org/x/tools/gopls@latest
+go: golang.org/x/tools/gopls@latest: module golang.org/x/tools/gopls: Get "https://proxy.golang.org/golang.org/x/tools/gopls/@v/list": dial tcp 142.251.33.209:443: connectex: A connection attempt failed because the connected party did not properly respond after a period of time, or established connection failed because connected host has failed to respond.
+ 
+2026-11-03 00:11:42.720 [info] Try to start language server - activation (enabled: false)
+2026-11-03 00:11:42.720 [warning] Language server is disabled

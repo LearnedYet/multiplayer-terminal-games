@@ -1,0 +1,9 @@
+Working directory: C:\Dev\Go\A
+Environment: GOWORK=off (process-local)
+Test SHA256: E99A69D8BBC9C015F03737299787255AAF997A0BCADFE64EFE5271460CB9C02C
+Command: go test -mod=readonly ./internal/server -run '^TestHubForwardSetModeSendsMessage$' -count=1 -v
+=== RUN   TestHubForwardSetModeSendsMessage
+--- PASS: TestHubForwardSetModeSendsMessage (0.00s)
+PASS
+ok  	github.com/siyad01/multiplayer-terminal-games/internal/server	0.466s
+Exit code: 0

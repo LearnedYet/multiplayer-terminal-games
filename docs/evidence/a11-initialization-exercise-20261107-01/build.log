@@ -1,0 +1,18 @@
+Date: 2026-11-07 (America/Los_Angeles, client date)
+Chat: project A Phase 0 / A1.1; user initialization exercise
+Working directory: C:\Dev\Go\A
+Command: git rev-parse HEAD
+488dd313bc13de387d12a24f5d05a5c28bed5899
+Command: go version
+go version go1.27.3 windows/amd64
+Command: go env GOMOD GOCACHE
+C:\Dev\Go\A\go.mod
+C:\Users\c8618\AppData\Local\go-build
+Command: git diff --check -- internal/server/hub.go
+(no output)
+Exit code: 0
+Command: go build -mod=readonly ./internal/server
+(no output)
+Exit code: 0
+Patch: cumulative hub.go diff against HEAD; includes earlier initialization rename and formatting.
+No tests executed. R1 mode initialization remains unfixed.

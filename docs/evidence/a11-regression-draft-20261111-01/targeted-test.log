@@ -1,0 +1,18 @@
+Date: 2026-11-11 (America/Los_Angeles, client date)
+Chat: project A Phase 0 / A1.1; first execution attempt of learner regression assertions
+Working directory: C:\Dev\Go\A
+Command: git rev-parse HEAD
+488dd313bc13de387d12a24f5d05a5c28bed5899
+Command: go version
+go version go1.27.3 windows/amd64
+Working tree already contains the learner-written setModeCh field assignment.
+User input: PlayerID 1, ModeLastStanding. Both received fields are checked in the source snapshot.
+Command: go test -mod=readonly ./internal/server -run '^TestHubForwardSetModeSendsMessage$' -count=1
+# github.com/siyad01/multiplayer-terminal-games/internal/server_test
+# [github.com/siyad01/multiplayer-terminal-games/internal/server_test]
+internal\server\hub_test.go:212:4: (*testing.common).Error call has possible Printf formatting directive %d
+internal\server\hub_test.go:215:4: (*testing.common).Fatal call has possible Printf formatting directive %v
+FAIL	github.com/siyad01/multiplayer-terminal-games/internal/server [build failed]
+FAIL
+Exit code: 1
+No old-implementation comparison, full-suite test, or multiplayer verification executed in this batch.

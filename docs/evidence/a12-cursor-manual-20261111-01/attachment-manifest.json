@@ -1,0 +1,20 @@
+[
+  {
+    "Source": "C:\\Users\\c8618\\AppData\\Local\\Temp\\codex-clipboard-c1f24e60-8164-4257-87d2-edb027ab0407.png",
+    "Copy": "01-two-clients-after-alice-move.png",
+    "SHA256": "354D041E93EB87396DE0A148B008738A78A25B8F4EC615651B12A87EC42F2BDB",
+    "Identical": true
+  },
+  {
+    "Source": "C:\\Users\\c8618\\AppData\\Local\\Temp\\codex-clipboard-a99e51ac-07dd-4e7f-9aaa-20255558cec6.png",
+    "Copy": "02-two-clients-after-bob-move.png",
+    "SHA256": "630BFD1C934FC5E5F4491E390135C5220E96E8967510952ECAFFD434400D9B58",
+    "Identical": true
+  },
+  {
+    "Source": "C:\\Users\\c8618\\AppData\\Local\\Temp\\codex-clipboard-2ca77ba4-57f1-4166-8e76-8d2dc51e0300.png",
+    "Copy": "03-server-clean-shutdown.png",
+    "SHA256": "9980CA266EA9BE4163780324642D440BA262812460318E14A893F3086804031F",
+    "Identical": true
+  }
+]

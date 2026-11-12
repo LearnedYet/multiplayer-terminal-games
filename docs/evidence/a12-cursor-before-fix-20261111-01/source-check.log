@@ -1,0 +1,3 @@
+Source check after failed regression; no code written by AI in this batch.
+C:\Dev\Go\A\cmd\mineserver\main.go: unchanged=True
+C:\Dev\Go\A\cmd\mineserver\main_test.go: unchanged=True
