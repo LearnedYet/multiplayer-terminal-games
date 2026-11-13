@@ -1,0 +1,294 @@
+diff --git a/internal/minesweeper/game.go b/internal/minesweeper/game.go
+index 2db3b9e..cfe6d76 100644
+--- a/internal/minesweeper/game.go
++++ b/internal/minesweeper/game.go
+@@ -5,7 +5,9 @@
+ package minesweeper
+ 
+ import (
++	"fmt"
+ 	"math/rand"
++	"time"
+ 
+ 	"github.com/siyad01/multiplayer-terminal-games/internal/protocol"
+ )
+@@ -17,7 +19,7 @@ import (
+ type CellState uint8
+ 
+ const (
+-	StateHidden   CellState = iota
++	StateHidden CellState = iota
+ 	StateRevealed
+ 	StateFlagged
+ 	StateExploded // mine that was triggered
+@@ -39,7 +41,7 @@ type Difficulty struct {
+ }
+ 
+ var Difficulties = map[string]Difficulty{
+-	"easy":   {Width: 9,  Height: 9,  Mines: 10},
++	"easy":   {Width: 9, Height: 9, Mines: 10},
+ 	"medium": {Width: 16, Height: 16, Mines: 40},
+ 	"hard":   {Width: 30, Height: 16, Mines: 99},
+ }
+@@ -54,6 +56,7 @@ const (
+ )
+ 
+ type Game struct {
++	MatchId   string
+ 	Width     uint8
+ 	Height    uint8
+ 	Cells     []InternalCell // row-major: cells[y*Width + x]
+@@ -66,8 +69,8 @@ type Game struct {
+ 	rng       *rand.Rand
+ 
+ 	// Per-player state
+-	Players  []*MinePlayer
+-	Cursors  map[uint8]protocol.CursorPos // playerID → cursor
++	Players []*MinePlayer
++	Cursors map[uint8]protocol.CursorPos // playerID → cursor
+ }
+ 
+ type MinePlayer struct {
+@@ -75,6 +78,7 @@ type MinePlayer struct {
+ 	Name    string
+ 	Reveals uint16 // cells this player revealed
+ 	Flags   uint16 // flags this player placed
++	Left    bool   //玩家是否已经中途离开本局
+ }
+ 
+ // ─────────────────────────────────────────────────────────────
+@@ -84,6 +88,7 @@ type MinePlayer struct {
+ func NewGame(d Difficulty, mode Mode, rng *rand.Rand) *Game {
+ 	size := int(d.Width) * int(d.Height)
+ 	g := &Game{
++		MatchId:   fmt.Sprintf("mine-%d-%04d", time.Now().UnixMilli(), rng.Intn(10000)),
+ 		Width:     d.Width,
+ 		Height:    d.Height,
+ 		Cells:     make([]InternalCell, size),
+@@ -109,15 +114,36 @@ func (g *Game) AddPlayer(id uint8, name string) {
+ }
+ 
+ func (g *Game) RemovePlayer(id uint8) {
+-	for i, p := range g.Players {
++	for _, p := range g.Players {
+ 		if p.ID == id {
+-			g.Players = append(g.Players[:i], g.Players[i+1:]...)
++			p.Left = true
+ 			break
+ 		}
+ 	}
+ 	delete(g.Cursors, id)
+ }
+ 
++func (g *Game) isPlayerActive(id uint8) bool {
++	for _, p := range g.Players {
++		if p.ID == id {
++			return !p.Left // 发现这个玩家了 没有离开
++		}
++	}
++	return false //没找到 已经离开了
++}
++
++func (g *Game) AllPlayersLeft() bool {
++	if len(g.Players) == 0 {
++		return false
++	}
++	for _, p := range g.Players {
++		if !p.Left {
++			return false
++		}
++	}
++	return true
++}
++
+ // ─────────────────────────────────────────────────────────────
+ // MINE PLACEMENT — deferred until first click
+ // Guarantees first click is always safe (never a mine).
+@@ -190,15 +216,15 @@ func (g *Game) placeMines(safeX, safeY uint8) {
+ 
+ type ActionResult struct {
+ 	Changes  []protocol.MineChange
+-	Exploded bool   // hit a mine
+-	Won      bool   // all non-mines revealed
+-	PlayerID uint8  // who triggered this
++	Exploded bool  // hit a mine
++	Won      bool  // all non-mines revealed
++	PlayerID uint8 // who triggered this
+ }
+ 
+-// Reveal reveals cell (x,y) for playerID.
+-// Returns all cells that changed state (flood-fill for empty cells).
++// Reveal 显示玩家 ID 的单元格 (x,y)。
++// 返回所有更改状态的单元格（空单元格的填充）。
+ func (g *Game) Reveal(playerID, x, y uint8) ActionResult {
+-	if g.Over {
++	if g.Over || !g.isPlayerActive(playerID) {
+ 		return ActionResult{}
+ 	}
+ 
+@@ -262,7 +288,7 @@ func (g *Game) Reveal(playerID, x, y uint8) ActionResult {
+ 	won := g.checkWin()
+ 	if won {
+ 		g.Over = true
+-		g.Won  = true
++		g.Won = true
+ 	}
+ 
+ 	return ActionResult{
+@@ -280,11 +306,11 @@ func (g *Game) floodReveal(playerID, x, y uint8) []protocol.MineChange {
+ 
+ 	// BFS queue
+ 	type pt struct{ x, y int }
+-	queue   := []pt{{int(x), int(y)}}
++	queue := []pt{{int(x), int(y)}}
+ 	visited := make(map[int]bool)
+ 
+ 	for len(queue) > 0 {
+-		curr  := queue[0]
++		curr := queue[0]
+ 		queue = queue[1:]
+ 
+ 		idx := curr.y*w + curr.x
+@@ -338,10 +364,11 @@ func (g *Game) floodReveal(playerID, x, y uint8) []protocol.MineChange {
+ 
+ // Flag toggles a flag on cell (x,y).
+ func (g *Game) Flag(playerID, x, y uint8) []protocol.MineChange {
+-	if g.Over {
++	if g.Over || !g.isPlayerActive(playerID) {
+ 		return nil
+ 	}
+-	idx  := int(y)*int(g.Width) + int(x)
++
++	idx := int(y)*int(g.Width) + int(x)
+ 	cell := &g.Cells[idx]
+ 
+ 	if cell.State == StateRevealed {
+@@ -349,18 +376,18 @@ func (g *Game) Flag(playerID, x, y uint8) []protocol.MineChange {
+ 	}
+ 
+ 	var newState CellState
+-	var mc      protocol.MineCell
++	var mc protocol.MineCell
+ 
+ 	switch cell.State {
+ 	case StateHidden:
+ 		if g.FlagsLeft <= 0 {
+ 			return nil // no flags left
+ 		}
+-		cell.State     = StateFlagged
++		cell.State = StateFlagged
+ 		cell.FlaggedBy = playerID
+ 		g.FlagsLeft--
+ 		newState = StateFlagged
+-		mc       = protocol.MineCellFlagged
++		mc = protocol.MineCellFlagged
+ 
+ 		for _, p := range g.Players {
+ 			if p.ID == playerID {
+@@ -370,11 +397,11 @@ func (g *Game) Flag(playerID, x, y uint8) []protocol.MineChange {
+ 		}
+ 
+ 	case StateFlagged:
+-		cell.State     = StateHidden
++		cell.State = StateHidden
+ 		cell.FlaggedBy = 0
+ 		g.FlagsLeft++
+ 		newState = StateHidden
+-		mc       = protocol.MineCellHidden
++		mc = protocol.MineCellHidden
+ 		_ = newState
+ 
+ 		for _, p := range g.Players {
+@@ -390,6 +417,10 @@ func (g *Game) Flag(playerID, x, y uint8) []protocol.MineChange {
+ 
+ // MoveCursor updates a player's cursor position.
+ func (g *Game) MoveCursor(playerID, x, y uint8) {
++	if !g.isPlayerActive(playerID) {
++		return
++	}
++
+ 	g.Cursors[playerID] = protocol.CursorPos{
+ 		PlayerID: playerID, X: x, Y: y,
+ 	}
+@@ -457,4 +488,4 @@ func (g *Game) NonMineCount() int {
+ 		}
+ 	}
+ 	return count
+-}
+\ No newline at end of file
++}
+diff --git a/internal/minesweeper/game_test.go b/internal/minesweeper/game_test.go
+index 8a33e86..fe8b5e7 100644
+--- a/internal/minesweeper/game_test.go
++++ b/internal/minesweeper/game_test.go
+@@ -53,8 +53,8 @@ func TestRevealedCantBeFlagged(t *testing.T) {
+ 
+ 	for i, c := range g.Cells {
+ 		if c.State == StateRevealed {
+-			x       := uint8(i % int(g.Width))
+-			y       := uint8(i / int(g.Width))
++			x := uint8(i % int(g.Width))
++			y := uint8(i / int(g.Width))
+ 			changes := g.Flag(0, x, y)
+ 			if len(changes) > 0 {
+ 				t.Fatal("should not be able to flag a revealed cell")
+@@ -121,8 +121,8 @@ func TestGameOverOnMine(t *testing.T) {
+ 	// Find a mine and click it
+ 	for i, c := range g.Cells {
+ 		if c.IsMine {
+-			x      := uint8(i % int(g.Width))
+-			y      := uint8(i / int(g.Width))
++			x := uint8(i % int(g.Width))
++			y := uint8(i / int(g.Width))
+ 			result := g.Reveal(0, x, y)
+ 			if !result.Exploded {
+ 				t.Fatal("clicking a mine should explode")
+@@ -170,4 +170,46 @@ func TestVisibleCellsHidesMines(t *testing.T) {
+ 				i, c)
+ 		}
+ 	}
+-}
+\ No newline at end of file
++}
++
++func TestPlayerLeaveRetainsScore(t *testing.T) {
++	g := newTestMineGame(ModeCooperative)
++	g.AddPlayer(0, "alice")
++	g.AddPlayer(1, "bob")
++
++	// 1. 检查开局生成的 MatchID 不为空
++	if g.MatchId == "" {
++		t.Fatal("expected non-empty MatchID")
++	}
++
++	// 2. Alice 翻开安全格 (4, 4) 获得分数，然后中途离开
++	g.Reveal(0, 4, 4)
++	scoreBeforeLeave := g.Players[0].Reveals
++	if scoreBeforeLeave == 0 {
++		t.Fatal("expected alice to gain score before leaving")
++	}
++
++	// TODO(1): 调用方法让 0 号玩家 (alice) 离开本局
++	g.RemovePlayer(0)
++	// TODO(2): 断言名单里依然保留着 2 个人 (len(g.Players) == 2)，且 alice 的分数没有清零
++	if len(g.Players) != 2 {
++		t.Fatalf("名单中的人数为%v,期望为2", len(g.Players))
++	}
++	if g.Players[0].Reveals == 0 {
++		t.Fatalf("alice的分数清空了")
++	}
++	// TODO(3): 断言此时全员离开检查 g.AllPlayersLeft() 应该为 false（因为 bob 还在）
++	if g.AllPlayersLeft() {
++		t.Fatalf("玩家全都离开了")
++	}
++	// TODO(4): alice 离开后再尝试插旗 g.Flag(0, 0, 0)，断言返回的 changes 长度为 0
++	g.Flag(0, 0, 0)
++	if g.Players[0].Flags != 0 {
++		t.Fatalf("错误,退出的玩家不能插旗")
++	}
++	// TODO(5): 让 1 号玩家 (bob) 也离开，断言此时 g.AllPlayersLeft() 变为 true
++	g.RemovePlayer(1)
++	if !g.AllPlayersLeft() {
++		t.Fatalf("玩家没有全部退出")
++	}
++}

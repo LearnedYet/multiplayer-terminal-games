@@ -5,6 +5,7 @@
 package minesweeper
 
 import (
+	"fmt"
 	"log"
 	"math/rand"
 	"time"
@@ -31,20 +32,28 @@ const (
 // Loop runs the Minesweeper game loop.
 // Reuses snake.JoinMsg / snake.LeaveMsg / snake.StartMsg channels.
 func Loop(
-	mineCh      <-chan MineInputMsg,
-	joinCh      <-chan snake.JoinMsg,
-	leaveCh     <-chan snake.LeaveMsg,
-	startCh     <-chan snake.StartMsg,
-	setModeCh   <-chan SetModeMsg,
-	stopCh      <-chan struct{},
+	mineCh <-chan MineInputMsg,
+	joinCh <-chan snake.JoinMsg,
+	leaveCh <-chan snake.LeaveMsg,
+	startCh <-chan snake.StartMsg,
+	setModeCh <-chan SetModeMsg,
+	stopCh <-chan struct{},
 	broadcastCh chan<- []byte,
-	gameOverCh  chan<- uint8,
+	gameOverCh chan<- uint8,
 ) {
+	var results []MatchResult
+	var matchNumber uint64
 	for {
-		done := runOnce(
+		matchNumber++
+		matchID := fmt.Sprintf("mine - %d", matchNumber)
+		done, result := runOnce(
 			mineCh, joinCh, leaveCh, startCh, setModeCh,
-			stopCh, broadcastCh, gameOverCh,
+			stopCh, broadcastCh, gameOverCh, matchID,
 		)
+		if result != nil {
+			results = append(results, *result)
+			log.Printf("minesweeper: 保存了比赛结果id = %s total = %d", result.GameID, len(results))
+		}
 		if done {
 			return
 		}
@@ -59,51 +68,61 @@ type SetModeMsg struct {
 }
 
 func runOnce(
-	mineCh      <-chan MineInputMsg,
-	joinCh      <-chan snake.JoinMsg,
-	leaveCh     <-chan snake.LeaveMsg,
-	startCh     <-chan snake.StartMsg,
-	setModeCh   <-chan SetModeMsg,
-	stopCh      <-chan struct{},
+	mineCh <-chan MineInputMsg,
+	joinCh <-chan snake.JoinMsg,
+	leaveCh <-chan snake.LeaveMsg,
+	startCh <-chan snake.StartMsg,
+	setModeCh <-chan SetModeMsg,
+	stopCh <-chan struct{},
 	broadcastCh chan<- []byte,
-	gameOverCh  chan<- uint8,
-) bool {
+	gameOverCh chan<- uint8,
+	matchID string,
+) (bool, *MatchResult) {
 	log.Println("minesweeper: lobby open")
 
 	lobbyPlayers := make(map[uint8]string)
-	lobbyIDs     := []uint8{}
-	var hostID    uint8
-	hasHost       := false
-	gameMode      := ModeSolo
-	difficulty    := "easy"
+	lobbyIDs := []uint8{}
+	var hostID uint8
+	hasHost := false
+	gameMode := ModeSolo
+	difficulty := "easy"
 
 	broadcast := func(msg []byte) {
-		select { case broadcastCh <- msg: default: }
+		select {
+		case broadcastCh <- msg:
+		default:
+		}
 	}
 
 	addToLobby := func(id uint8, name string) bool {
-		if len(lobbyPlayers) >= protocol.MaxPlayers { return false }
-		if _, exists := lobbyPlayers[id]; exists { return true }
+		if len(lobbyPlayers) >= protocol.MaxPlayers {
+			return false
+		}
+		if _, exists := lobbyPlayers[id]; exists {
+			return true
+		}
 		lobbyPlayers[id] = name
 		lobbyIDs = append(lobbyIDs, id)
 		if !hasHost {
-			hostID  = id
+			hostID = id
 			hasHost = true
 		}
 		return true
 	}
 
 	broadcastLobby := func() {
-		ids   := make([]uint8, 0, len(lobbyIDs))
+		ids := make([]uint8, 0, len(lobbyIDs))
 		names := make([]string, 0, len(lobbyIDs))
 		for _, id := range lobbyIDs {
 			if n, ok := lobbyPlayers[id]; ok {
-				ids   = append(ids, id)
+				ids = append(ids, id)
 				names = append(names, n)
 			}
 		}
 		hid := uint8(0xFF)
-		if hasHost { hid = hostID }
+		if hasHost {
+			hid = hostID
+		}
 		// Reuse lobby state message — duration field = 0 for minesweeper
 		broadcast(protocol.EncodeLobbyFull(hid, ids, names, 0,
 			protocol.GameMode(gameMode+10))) // offset to distinguish from snake
@@ -115,7 +134,9 @@ func runOnce(
 		case msg := <-joinCh:
 			ok := addToLobby(msg.PlayerID, msg.Name)
 			msg.ResultChan <- ok
-			if ok { broadcastLobby() }
+			if ok {
+				broadcastLobby()
+			}
 
 		case msg := <-leaveCh:
 			delete(lobbyPlayers, msg.PlayerID)
@@ -128,32 +149,42 @@ func runOnce(
 			if hasHost && msg.PlayerID == hostID && len(lobbyIDs) > 0 {
 				hostID = lobbyIDs[0]
 			}
-			if len(lobbyPlayers) == 0 { hasHost = false }
+			if len(lobbyPlayers) == 0 {
+				hasHost = false
+			}
 			broadcastLobby()
 
 		case msg := <-setModeCh:
-			if !hasHost || msg.PlayerID != hostID { continue }
-			gameMode   = msg.Mode
+			if !hasHost || msg.PlayerID != hostID {
+				continue
+			}
+			gameMode = msg.Mode
 			difficulty = msg.Difficulty
 			broadcastLobby()
 
 		case msg := <-startCh:
-			if !hasHost || msg.PlayerID != hostID { continue }
-			if len(lobbyPlayers) == 0 { continue }
+			if !hasHost || msg.PlayerID != hostID {
+				continue
+			}
+			if len(lobbyPlayers) == 0 {
+				continue
+			}
 			log.Printf("minesweeper: starting mode=%d diff=%s players=%d",
 				gameMode, difficulty, len(lobbyPlayers))
 			goto startGame
 
 		case <-stopCh:
-			return true
+			return true, nil
 		}
 	}
 
 startGame:
 	diff := Difficulties[difficulty]
-	if diff.Width == 0 { diff = Difficulties["easy"] }
+	if diff.Width == 0 {
+		diff = Difficulties["easy"]
+	}
 
-	game := NewGame(diff, gameMode, rand.New(rand.NewSource(time.Now().UnixNano())))
+	game := NewGame(matchID, diff, gameMode, rand.New(rand.NewSource(time.Now().UnixNano())))
 	for _, id := range lobbyIDs {
 		game.AddPlayer(id, lobbyPlayers[id])
 		broadcast(protocol.EncodePlayerJoined(id, lobbyPlayers[id]))
@@ -175,14 +206,16 @@ startGame:
 	for {
 		select {
 		case msg := <-mineCh:
-			if game.Over { continue }
+			if game.Over {
+				continue
+			}
 
 			var result ActionResult
 			var changes []protocol.MineChange
 
 			switch msg.Action {
 			case ActionReveal:
-				result  = game.Reveal(msg.PlayerID, msg.X, msg.Y)
+				result = game.Reveal(msg.PlayerID, msg.X, msg.Y)
 				changes = result.Changes
 
 			case ActionFlag:
@@ -208,29 +241,37 @@ startGame:
 			}
 
 			if result.Exploded {
+				res := game.SnapshotResult()
 				log.Printf("minesweeper: player %d hit a mine at (%d,%d)",
 					msg.PlayerID, msg.X, msg.Y)
 				broadcast(protocol.EncodeMineExplode(msg.PlayerID, msg.X, msg.Y))
-				select { case gameOverCh <- msg.PlayerID: default: }
+				select {
+				case gameOverCh <- msg.PlayerID:
+				default:
+				}
 				time.Sleep(3 * time.Second)
-				return false
+				return false, &res
 			}
 
 			if result.Won {
+				res := game.SnapshotResult()
 				log.Println("minesweeper: board cleared!")
 				// Find highest scorer as winner
 				var winner uint8 = 0xFF
-				var best  uint16 = 0
+				var best uint16 = 0
 				for _, p := range game.Players {
 					if p.Reveals > best {
-						best   = p.Reveals
+						best = p.Reveals
 						winner = p.ID
 					}
 				}
 				broadcast(protocol.EncodeMineWin(game.Scores()))
-				select { case gameOverCh <- winner: default: }
+				select {
+				case gameOverCh <- winner:
+				default:
+				}
 				time.Sleep(5 * time.Second)
-				return false
+				return false, &res
 			}
 
 		case msg := <-joinCh:
@@ -253,8 +294,19 @@ startGame:
 			game.RemovePlayer(msg.PlayerID)
 			log.Printf("minesweeper: player %d left", msg.PlayerID)
 
+			// TODO：判断是否所有本局玩家都已离开
+			if game.AllPlayersLeft() {
+
+				// TODO：成立时调用取消方法，并记录包含 MatchId 的取消日志
+				game.Cancel()
+				res := game.SnapshotResult()
+				gameID := game.MatchId
+				log.Printf("游戏已结束 对局记录为:%v", gameID)
+				// TODO：退出本次 runOnce，让外层 Loop 重新进入大厅
+				return false, &res
+			}
 		case <-stopCh:
-			return true
+			return true, nil
 		}
 	}
 }

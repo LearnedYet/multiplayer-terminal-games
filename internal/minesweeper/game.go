@@ -17,7 +17,7 @@ import (
 type CellState uint8
 
 const (
-	StateHidden   CellState = iota
+	StateHidden CellState = iota
 	StateRevealed
 	StateFlagged
 	StateExploded // mine that was triggered
@@ -39,7 +39,7 @@ type Difficulty struct {
 }
 
 var Difficulties = map[string]Difficulty{
-	"easy":   {Width: 9,  Height: 9,  Mines: 10},
+	"easy":   {Width: 9, Height: 9, Mines: 10},
 	"medium": {Width: 16, Height: 16, Mines: 40},
 	"hard":   {Width: 30, Height: 16, Mines: 99},
 }
@@ -54,6 +54,7 @@ const (
 )
 
 type Game struct {
+	MatchId   string
 	Width     uint8
 	Height    uint8
 	Cells     []InternalCell // row-major: cells[y*Width + x]
@@ -63,11 +64,12 @@ type Game struct {
 	Started   bool // false until first reveal (safe first click)
 	Over      bool
 	Won       bool
+	Canceled  bool
 	rng       *rand.Rand
 
 	// Per-player state
-	Players  []*MinePlayer
-	Cursors  map[uint8]protocol.CursorPos // playerID → cursor
+	Players []*MinePlayer
+	Cursors map[uint8]protocol.CursorPos // playerID → cursor
 }
 
 type MinePlayer struct {
@@ -75,15 +77,24 @@ type MinePlayer struct {
 	Name    string
 	Reveals uint16 // cells this player revealed
 	Flags   uint16 // flags this player placed
+	Left    bool   //玩家是否已经中途离开本局
+}
+
+type MatchResult struct {
+	GameID       string
+	Won          bool
+	Cancel       bool
+	PlayerResult []MinePlayer
 }
 
 // ─────────────────────────────────────────────────────────────
 // CONSTRUCTOR
 // ─────────────────────────────────────────────────────────────
 
-func NewGame(d Difficulty, mode Mode, rng *rand.Rand) *Game {
+func NewGame(matchID string, d Difficulty, mode Mode, rng *rand.Rand) *Game {
 	size := int(d.Width) * int(d.Height)
 	g := &Game{
+		MatchId:   matchID,
 		Width:     d.Width,
 		Height:    d.Height,
 		Cells:     make([]InternalCell, size),
@@ -109,13 +120,64 @@ func (g *Game) AddPlayer(id uint8, name string) {
 }
 
 func (g *Game) RemovePlayer(id uint8) {
-	for i, p := range g.Players {
+	for _, p := range g.Players {
 		if p.ID == id {
-			g.Players = append(g.Players[:i], g.Players[i+1:]...)
+			p.Left = true
 			break
 		}
 	}
 	delete(g.Cursors, id)
+}
+
+func (g *Game) isPlayerActive(id uint8) bool {
+	for _, p := range g.Players {
+		if p.ID == id {
+			return !p.Left // 发现这个玩家了 没有离开
+		}
+	}
+	return false //没找到 已经离开了
+}
+
+func (g *Game) AllPlayersLeft() bool {
+	if len(g.Players) == 0 {
+		return false
+	}
+	for _, p := range g.Players {
+		if !p.Left {
+			return false
+		}
+	}
+	return true
+}
+
+func (g *Game) Cancel() {
+	if g.Canceled {
+		return
+	}
+	if g.Over {
+		return
+	}
+	g.Over = true
+	g.Canceled = true
+}
+
+func (g *Game) SnapshotResult() MatchResult {
+	// TODO：创建一个 MatchResult 局部变量
+	// TODO：从 g 复制对局编号、胜利标记和取消标记
+	res := MatchResult{
+		GameID: g.MatchId,
+		Won:    g.Won,
+		Cancel: g.Canceled,
+	}
+	// TODO：为结果创建独立的玩家列表
+	playerResult := make([]MinePlayer, 0, len(g.Players))
+	// TODO：遍历 g.Players，把每个玩家的值复制进结果列表
+	for _, p := range g.Players {
+		playerResult = append(playerResult, *p)
+	}
+	res.PlayerResult = playerResult
+	// TODO：返回填好的结果
+	return res
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -190,15 +252,15 @@ func (g *Game) placeMines(safeX, safeY uint8) {
 
 type ActionResult struct {
 	Changes  []protocol.MineChange
-	Exploded bool   // hit a mine
-	Won      bool   // all non-mines revealed
-	PlayerID uint8  // who triggered this
+	Exploded bool  // hit a mine
+	Won      bool  // all non-mines revealed
+	PlayerID uint8 // who triggered this
 }
 
-// Reveal reveals cell (x,y) for playerID.
-// Returns all cells that changed state (flood-fill for empty cells).
+// Reveal 显示玩家 ID 的单元格 (x,y)。
+// 返回所有更改状态的单元格（空单元格的填充）。
 func (g *Game) Reveal(playerID, x, y uint8) ActionResult {
-	if g.Over {
+	if g.Over || !g.isPlayerActive(playerID) {
 		return ActionResult{}
 	}
 
@@ -262,7 +324,7 @@ func (g *Game) Reveal(playerID, x, y uint8) ActionResult {
 	won := g.checkWin()
 	if won {
 		g.Over = true
-		g.Won  = true
+		g.Won = true
 	}
 
 	return ActionResult{
@@ -280,11 +342,11 @@ func (g *Game) floodReveal(playerID, x, y uint8) []protocol.MineChange {
 
 	// BFS queue
 	type pt struct{ x, y int }
-	queue   := []pt{{int(x), int(y)}}
+	queue := []pt{{int(x), int(y)}}
 	visited := make(map[int]bool)
 
 	for len(queue) > 0 {
-		curr  := queue[0]
+		curr := queue[0]
 		queue = queue[1:]
 
 		idx := curr.y*w + curr.x
@@ -338,10 +400,11 @@ func (g *Game) floodReveal(playerID, x, y uint8) []protocol.MineChange {
 
 // Flag toggles a flag on cell (x,y).
 func (g *Game) Flag(playerID, x, y uint8) []protocol.MineChange {
-	if g.Over {
+	if g.Over || !g.isPlayerActive(playerID) {
 		return nil
 	}
-	idx  := int(y)*int(g.Width) + int(x)
+
+	idx := int(y)*int(g.Width) + int(x)
 	cell := &g.Cells[idx]
 
 	if cell.State == StateRevealed {
@@ -349,18 +412,18 @@ func (g *Game) Flag(playerID, x, y uint8) []protocol.MineChange {
 	}
 
 	var newState CellState
-	var mc      protocol.MineCell
+	var mc protocol.MineCell
 
 	switch cell.State {
 	case StateHidden:
 		if g.FlagsLeft <= 0 {
 			return nil // no flags left
 		}
-		cell.State     = StateFlagged
+		cell.State = StateFlagged
 		cell.FlaggedBy = playerID
 		g.FlagsLeft--
 		newState = StateFlagged
-		mc       = protocol.MineCellFlagged
+		mc = protocol.MineCellFlagged
 
 		for _, p := range g.Players {
 			if p.ID == playerID {
@@ -370,11 +433,11 @@ func (g *Game) Flag(playerID, x, y uint8) []protocol.MineChange {
 		}
 
 	case StateFlagged:
-		cell.State     = StateHidden
+		cell.State = StateHidden
 		cell.FlaggedBy = 0
 		g.FlagsLeft++
 		newState = StateHidden
-		mc       = protocol.MineCellHidden
+		mc = protocol.MineCellHidden
 		_ = newState
 
 		for _, p := range g.Players {
@@ -390,6 +453,10 @@ func (g *Game) Flag(playerID, x, y uint8) []protocol.MineChange {
 
 // MoveCursor updates a player's cursor position.
 func (g *Game) MoveCursor(playerID, x, y uint8) {
+	if !g.isPlayerActive(playerID) {
+		return
+	}
+
 	g.Cursors[playerID] = protocol.CursorPos{
 		PlayerID: playerID, X: x, Y: y,
 	}

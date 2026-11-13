@@ -1,0 +1,14 @@
+[
+  {
+    "Path": "C:\\Dev\\Go\\A\\internal\\minesweeper\\game.go",
+    "Hash": "58FD28B6C9BCABA24B0B3C7D280B291A822ED6FE83DEF288FE6DA25EB857ED28"
+  },
+  {
+    "Path": "C:\\Dev\\Go\\A\\internal\\minesweeper\\loop.go",
+    "Hash": "7A256517920BE82D66E254AB97651720CFC113206DCB54BB42A5B14AA9AE2B30"
+  },
+  {
+    "Path": "C:\\Dev\\Go\\A\\internal\\minesweeper\\game_test.go",
+    "Hash": "A260A6C591E287245A0C1A693AE6B1B2977DC441E43D96C0A9D3B685CE0AD03C"
+  }
+]

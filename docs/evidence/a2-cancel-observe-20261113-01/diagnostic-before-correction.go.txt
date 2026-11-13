@@ -1,0 +1,56 @@
+package minesweeper
+
+import (
+ "testing"
+ "time"
+ "github.com/siyad01/multiplayer-terminal-games/internal/protocol"
+ "github.com/siyad01/multiplayer-terminal-games/internal/snake"
+)
+
+// Diagnostic only: business observations are logged, without core assertions.
+func TestObserveCancelLifecycle(t *testing.T) {
+ for _, scenario := range []struct{name string; over, won bool}{
+  {"running", false, false}, {"won", true, true}, {"lost", true, false},
+ } {
+  g := newTestMineGame(ModeCooperative)
+  g.Over, g.Won = scenario.over, scenario.won
+  g.Cancel()
+  t.Logf("OBSERVE %s after Cancel: Over=%t Won=%t Canceled=%t", scenario.name, g.Over, g.Won, g.Canceled)
+  g.Cancel()
+  t.Logf("OBSERVE %s after second Cancel: Over=%t Won=%t Canceled=%t", scenario.name, g.Over, g.Won, g.Canceled)
+ }
+ mine := make(chan MineInputMsg)
+ join := make(chan snake.JoinMsg)
+ leave := make(chan snake.LeaveMsg)
+ start := make(chan snake.StartMsg)
+ mode := make(chan SetModeMsg)
+ stop := make(chan struct{})
+ broadcast := make(chan []byte, 64)
+ gameOver := make(chan uint8, 4)
+ done := make(chan struct{})
+ go func(){ defer close(done); Loop(mine, join, leave, start, mode, stop, broadcast, gameOver) }()
+ defer func(){ close(stop); select { case <-done: case <-time.After(time.Second): t.Error("probe cleanup timeout") } }()
+ add := func(id uint8, name string) {
+  ack := make(chan bool, 1)
+  select { case join <- snake.JoinMsg{PlayerID:id, Name:name, ResultChan:ack}: case <-time.After(time.Second): t.Fatal("probe join send timeout") }
+  select { case accepted := <-ack: t.Logf("OBSERVE join %s accepted=%t", name, accepted); case <-time.After(time.Second): t.Fatal("probe join acknowledgment timeout") }
+ }
+ waitMessage := func(kind protocol.MsgType) {
+  timer := time.NewTimer(time.Second)
+  defer timer.Stop()
+  for { select { case packet := <-broadcast: if len(packet)>0 && packet[0]==byte(kind) { return }; case <-timer.C: t.Fatal("probe broadcast timeout") } }
+ }
+ add(0, "alice")
+ add(1, "bob")
+ mode <- SetModeMsg{PlayerID:0, Mode:ModeCooperative, Difficulty:"easy"}
+ start <- snake.StartMsg{PlayerID:0}
+ waitMessage(protocol.MsgMineState)
+ leave <- snake.LeaveMsg{PlayerID:0}
+ mine <- MineInputMsg{PlayerID:1, Action:ActionCursor, X:3, Y:4}
+ waitMessage(protocol.MsgMineCursors)
+ t.Log("OBSERVE after alice leaves: bob cursor broadcast received; same match still processing")
+ leave <- snake.LeaveMsg{PlayerID:1}
+ add(2, "carol")
+ waitMessage(protocol.MsgLobbyFull)
+ t.Log("OBSERVE after last leave: new lobby accepts carol and broadcasts lobby state")
+}

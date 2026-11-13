@@ -236,6 +236,122 @@ go run ./cmd/client -name bob
 - 交付依据：同测试按实际时间取得修复前失败、修复后通过，全库 38 个顶层测试通过及构建成功；有限双端正常光标位置同步和正常服务端停机有原始截图，停机后 8081 无监听。相关批次见上文。收尾时再次只读核对 main.go / main_test.go 与自动验证快照 SHA256 一致，本轮未重测或改业务代码。
 - A1.2 于 2026-11-11 完成并停止。本轮仅更新本地 AGENTS、CURRENT_STATE 和本文，保留 BASELINE 及原始证据；没有提交、推送、部署、依赖/许可证/共享文件修改或系统安装。后续任务尚未授权。完整规则、Race、性能及跨机器验证等限制继续保留。
 
+## A1 本地提交及 A2 开启（2026-11-11）
+
+- 用户明确要求“提交，然后开启下一阶段”。AI 核对现有暂存区、最新交付文档及源码：范围为 92 个项目约定、文档/证据及四个业务/测试文件；无 LICENSE、go.mod、go.sum 改动。main.go / main_test.go 与已通过 38 项测试的快照一致，hub.go / hub_test.go 与此前记录一致，因此未重复运行程序测试。
+- 更新暂存区中的三份最新交接文档后，执行 `git commit -m "fix: preserve snake mode channel and bind mine cursor to connection identity"` 成功，提交为 `d02f62199e2b120a9044b3bdbd6abdc3e5beb25e`。92 files changed，5694 insertions、54 deletions；提交后、A2 文档开始前 `git status --porcelain` 为空。见[本地提交回执](evidence/a2-start-20261111-01/local-commit-and-phase-start.log)。未推送，未改远程或凭据；Git 创建提交不改变用户指导下编写核心代码的贡献归属。
+- 随后开启 A2 单对局生命周期的读码/规则确认。实际读取 minesweeper Loop/runOnce 和 Game 的玩家保存/删除路径，确认现有离开处理会删除含本局分数的玩家对象、Cooperative 允许中途加入、全员离开未见取消结果。只属于静态调查，没有新的运行或功能结论。
+- 已在 CURRENT_STATE 列出目标、用户核心作者、AI 范围、验收方向及固定开局名单的推荐方案/允许中途加入的备选；参与、取消、再次开局细节仍待确认，未编写 A2 核心代码或测试。此提交之后的 A2 启动文档属于新的工作区修改，尚未提交；未改共享文档或原始 BASELINE。
+
+## A2 首版规则确认及既有改动核对（2026-11-12）
+
+- 用户对上一轮首版方案回答“同意”，确认固定开局名单、离开保留成绩、全员离开取消、结果固定及再开局新编号；不再将这些业务规则标为待批准。核心作者与 AI 辅助范围沿用既有学习分工。
+- 本聊天开始本轮时，git status 已显示 game.go 和 game_test.go 有未提交改动。只读 diff 看到新增 MatchId、Left、活动检查、全员离开检查，以及 TestPlayerLeaveRetainsScore。用户随后说明这是其在 Gemini 指导下编写的代码，尚未提交，待完成后交本聊天审查。按用户在 Gemini 指导下完成记录，不记为本聊天实现或用户独立设计；没有覆盖、撤回或重写这些文件。
+- 首次静态审查发现当时的分数保留判断仅验证非零，没有严格比较离开前后值；退出后插旗只看玩家 Flags，没有接收并检查返回的 changes。只是未完成快照的审查记录，没有新增运行结论；用户仍在 Gemini 指导下实现，完成交接后须按届时实际文件重新核对。本聊天按用户要求等待交接，不接手源码修改或提前运行测试。
+- 本轮只更新本地约定、状态及本文，未执行 Go 测试/构建、提交、推送或部署；未修改核心代码、依赖、许可证、共享文件或其他项目。之前 38 PASS 仅适用于 A1 已验证快照，不适用于这批尚未验证的 A2 修改。
+
+## A2 接回带学与首轮验证（2026-11-12）
+
+- 用户说明此前因本聊天额度不足由 Gemini 暂时指导，现明确要求本聊天接手。接续范围是已批准的 A2 单房间 Cooperative / Easy 生命周期；核心代码及代表性断言仍由用户编写，AI 负责讲解、审查、验证及本地文档。当前 game.go / game_test.go 改动保留“用户在 Gemini 指导下编写”归属，本轮 AI 没有修改源码或断言，没有重做既有实现。
+- 只读核对：RemovePlayer 标记 Left、保留玩家对象并删除光标；Reveal / Flag / MoveCursor 检查活动玩家；AllPlayersLeft 提供全员离开判断。调用链仍为 loop.go leave → Game.RemovePlayer，尚未接入 AllPlayersLeft；游戏中 join 仍会 AddPlayer，不符合已确认的固定名单规则，取消和固定结束结果尚未完成。
+- 批次为 `a2-handoff-check-20261112-01`。验证前保存[业务源码](evidence/a2-handoff-check-20261112-01/game.go.txt)、[测试源码](evidence/a2-handoff-check-20261112-01/game_test.go.txt)及[相对 HEAD 的源码差异](evidence/a2-handoff-check-20261112-01/source-diff.patch)。HEAD 为 `d02f62199e2b120a9044b3bdbd6abdc3e5beb25e`，Go 1.27.3 / Windows amd64，目录 `C:\Dev\Go\A`，GOWORK=off 只设于验证进程并还原，见[环境](evidence/a2-handoff-check-20261112-01/environment.log)。两源码运行前后 SHA256 一致，见本批次 before / after 哈希文件。
+- 实际执行：`go test -mod=readonly ./internal/minesweeper -run '^TestPlayerLeaveRetainsScore$' -count=1 -v -timeout=30s`：1 项 PASS、退出 0，见[定向日志](evidence/a2-handoff-check-20261112-01/targeted-test.log)；`go test -mod=readonly ./internal/minesweeper -count=1 -v -timeout=30s`：10 项顶层 PASS、0 SKIP、0 FAIL、退出 0，见[扫雷包日志](evidence/a2-handoff-check-20261112-01/package-tests.log)及[计数](evidence/a2-handoff-check-20261112-01/test-summary.json)。本轮是已有实现的首次本聊天验证，没有取得修改前失败对照；未核验或补写 Gemini 期间的执行结果。
+- 审查与下一学习点：TestPlayerLeaveRetainsScore 已保存 scoreBeforeLeave，但离开后只查非零，不能识别分数从 5 错变成 1；下一步由用户改为严格比较离开前后值。退出后插旗断言仅看 Flags，仍需后续补强。编号目前依赖毫秒时间及游戏 rng，只有非空断言，连续两局唯一性未验证，后续编号步骤再处理。
+- 结论仅为当前早期模型用例及相关包通过，不代表 A2 完成或用户独立掌握。未执行全库测试、构建、Race、联机或性能验证；无源码/依赖/许可证/共享文件改动，无提交、推送、部署或系统安装。更新本地 AGENTS、CURRENT_STATE 和本文，继续等待用户保存下一小步断言。
+
+## A2 用户补强离开前后成绩断言（2026-11-12）
+
+- 用户按本聊天给出的比较示例，实际保存 `TestPlayerLeaveRetainsScore` 中 `g.Players[0].Reveals != scoreBeforeLeave`，并自行调整提示文本与参数顺序为离开后、离开前。AI 读取实际文件，确认比较与报告对应正确；未代写实际断言或修改业务实现。记录为指导下完成，不认定独立设计整个测试。
+- 批次 `a2-score-assertion-20261112-01`：保留[用户保存的测试](evidence/a2-score-assertion-20261112-01/user-game-test.go.txt)、环境及源码前后哈希。Go 1.27.3 / Windows amd64，目录 `C:\Dev\Go\A`，HEAD `d02f62199e2b120a9044b3bdbd6abdc3e5beb25e`，GOWORK=off 仅设于验证进程并还原；执行 `go test -mod=readonly ./internal/minesweeper -run '^TestPlayerLeaveRetainsScore$' -count=1 -v -timeout=30s`，1 PASS、退出 0，见[定向日志](evidence/a2-score-assertion-20261112-01/targeted-test.log)。源码运行前后 SHA256 一致。
+- 变化仅为保留成绩的断言从“非零”改成“与离开前完全相同”，可以识别分数变少但仍非零的错误；本轮没有执行注入错误的失败对照，也没有重新运行全包、全库、构建或联机，不能将本次通过升级为 A2 完成。
+- 下一小步是将退出后的插旗场景单独测试：新棋盘未翻开，确保目标为隐藏格；检查 Flag 返回的变化列表及格子状态。当前只是指导，用户尚未保存该小步。AI 本轮只验证、记录及提供代码指导，无提交、推送、依赖/许可证/共享文件修改。
+
+## A2 带学提示强度调整（2026-11-12）
+
+- 用户报告“测试跑通了”，并明确要求后续业务改动和核心断言只提供思路提示与 TODO 骨架，让其自行敲代码，不直接贴完整答案。已记入本项目 AGENTS 和 CURRENT_STATE，后续按此执行；未修改共享学习规则或全局记忆文件。
+- 本轮只读核对实际 game_test.go：严格成绩比较仍在，原 TODO(4) 插旗块仍在，未找到 TestLeftPlayerCannotFlag；其 SHA256 与上一批 a2-score-assertion-20261112-01 已验证快照一致。因此只将通过消息记为用户报告，不认定尚未保存的新插旗测试通过；本轮未重复运行 Go 测试或改业务/测试源码。
+
+## A2 用户保存独立插旗测试并验证（2026-11-12）
+
+- 用户说明已保存后，AI 读取实际 game_test.go，确认 TestLeftPlayerCannotFlag 已存在，原成绩测试内的插旗执行及 Flags 检查已删除（原 TODO(4) 注释尚保留）。新用例在未翻开的棋盘中让 Alice 离开，再尝试对隐藏的 (0,0) 插旗，检查返回变化列表为空及目标仍为 StateHidden。调用链为测试 → Game.RemovePlayer 标记 Left → Game.Flag 活动检查 → 返回无变化。该用例是用户根据本聊天此前完整示例保存，记为指导下完成，不视为根据 TODO 独立填出的断言；后续遵守用户刚要求的思路与骨架方式。
+- 独立批次 `a2-left-flag-20261112-01` 保留[用户测试快照](evidence/a2-left-flag-20261112-01/user-game-test.go.txt)、[环境](evidence/a2-left-flag-20261112-01/environment.log)、源码运行前后 SHA256 及[计数](evidence/a2-left-flag-20261112-01/test-summary.json)。Go 1.27.3 / Windows amd64，目录 `C:\Dev\Go\A`，HEAD `d02f62199e2b120a9044b3bdbd6abdc3e5beb25e`；GOWORK=off 仅设于验证进程并还原。实际执行 `go test -mod=readonly ./internal/minesweeper -count=1 -v -timeout=30s`，11 个顶层 PASS、0 SKIP、0 FAIL、退出 0，见[完整包测试日志](evidence/a2-left-flag-20261112-01/package-tests.log)。源码前后哈希一致。
+- 本轮 AI 未修改业务或测试源码，仅验证及更新本地状态和证据。没有注入缺陷的失败对照；未执行全库、构建、Race、联机或性能验证，A2 整体仍未完成。下一步只提供 TODO 骨架，让用户编写离开后光标不会重建的相似用例；不扩展阶段、提交或推送。
+
+## A2 用户按 TODO 骨架补齐退出后光标测试（2026-11-12）
+
+- 用户回传[编辑及运行截图](evidence/a2-left-cursor-20261112-01/user-cursor-test.png)，AI 随后读取实际保存的 game_test.go。TestLeftPlayerCannotMoveCursor 按给定业务思路与 TODO 骨架，由用户补齐游戏创建、加入与离开、移动请求及三次光标数量判断；每次动作后重新调用 AllCursors，未沿用旧查询结果，并删除占位 t.Fatal。AI 没有预先提供该用例的完整动作/断言答案，也未写入核心代码。可记录为在提示下自行完成这个相似小变化，不能据此认定独立设计测试体系。
+- 关键调用链：AddPlayer 建立光标 → AllCursors 查询有一个 → RemovePlayer 标记离开并删除光标 → 查询为空 → MoveCursor 对离开者返回 → 再查询仍为空。单玩家场景使数量检查能识别删除失败或错误重建；该用例不验证 Bob 的光标或全局游戏结束后的行为。
+- 独立批次 `a2-left-cursor-20261112-01` 保留[用户保存的测试](evidence/a2-left-cursor-20261112-01/user-game-test.go.txt)、[环境](evidence/a2-left-cursor-20261112-01/environment.log)、截图源与副本的相同 SHA256 以及源码运行前后哈希。Go 1.27.3 / Windows amd64，目录 `C:\Dev\Go\A`，HEAD `d02f62199e2b120a9044b3bdbd6abdc3e5beb25e`，GOWORK=off 只设于验证进程并还原；执行 `go test -mod=readonly ./internal/minesweeper -run '^TestLeftPlayerCannotMoveCursor$' -count=1 -v -timeout=30s`，1 PASS、退出 0，见[定向日志](evidence/a2-left-cursor-20261112-01/targeted-test.log)。源码前后哈希一致。
+- 截图最后一次运行也显示同名用例通过；上方还残留一次 FAIL 尾部，但没有失败原因或当时源码，不能作为缺陷失败对照。本轮只运行该定向用例，未重跑全包/全库、构建、Race 或联机，A2 未完成。没有 AI 源码改动、提交、推送或共享文件修改。下一步以 TODO 骨架验证退出后的首次翻格被拒绝，再接续生命周期业务。
+
+## A2 回到全员离开取消的业务实现（2026-11-13）
+
+- 用户质疑是否要一直做防御测试，AI 确认此前相似练习拆得过细；用户随后要求继续。暂停尚未编写的退出后翻格测试，将下一步改为已授权 A2 的取消业务，不改变阶段范围或核心作者分工。
+- 本轮重新读取共享规则及本地状态，静态追踪 loop.go 的 runOnce：GAME leave → Game.RemovePlayer → 记录离开日志，缺少 AllPlayersLeft 判断和退出本局；Loop 将 runOnce 返回 true 解释为关闭服务循环、false 解释为进入新大厅。gameOverCh 的现有消费者仅记录带玩家编号的胜者日志，不适合作为取消结果的编号占位，本步不使用它伪造胜负。
+- 本轮仅提供 TODO 指导：Game 增加本局取消标记与 Cancel 方法，再在 GAME leave 分支接入取消和返回大厅。结束结果快照、固定名单及本步验证仍待实现，不将状态标记或日志等同持久保存结果。用户尚未填写，AI 未改业务/测试源码；本轮未运行程序测试、构建、联机、提交或推送。
+
+## A2 用户取消草稿审查（2026-11-13，待修正）
+
+- 用户按思路和 TODO 骨架保存 Canceled、Cancel 及 GAME leave 全员离开判断，AI 读取实际文件，未代写业务或核心断言。草稿的 Cancel 仅检查和设置 Canceled；leave 分支直接设置 Over，未调用 Cancel，随后 return true 会让外层 Loop 停止；日志 gameID 为 string，却使用 %d。记录为提示下尝试，尚未实现取消状态与返回大厅的验收行为。
+- 批次 `a2-cancel-draft-20261113-01` 保留[用户 Game 草稿](evidence/a2-cancel-draft-20261113-01/user-game.go.txt)、[用户循环草稿](evidence/a2-cancel-draft-20261113-01/user-loop.go.txt)、[环境](evidence/a2-cancel-draft-20261113-01/environment.log)及源码运行前后 SHA256。Go 1.27.3 / Windows amd64，目录 `C:\Dev\Go\A`，HEAD `d02f62199e2b120a9044b3bdbd6abdc3e5beb25e`；GOWORK=off 仅设于验证进程并还原。`go test -mod=readonly ./internal/minesweeper -count=1 -v -timeout=30s` 退出 1，报告 `log.Printf format %d has arg gameID of wrong type string`，见[原始日志](evidence/a2-cancel-draft-20261113-01/package-tests.log)。没有用例进入 RUN，这属于 go test 默认 vet 阶段失败，不能作为取消业务的失败回归证据；源码前后哈希一致。
+- AI 仅给出方法与分支定位、结束状态与取消原因的区别、返回值含义及格式类型提示，等待用户修正保存。未运行全库、构建、联机、Race，无源码修正、提交、推送或共享文件修改；原有通过记录不代表当前草稿通过。
+
+## A2 取消草稿第二次核对（2026-11-13，仍待修正）
+
+- 用户已将 Cancel 改为设置 Over 与 Canceled，GAME leave 调用该方法，日志改用 %v，可正常输出 string。仍有两处行为错误：Cancel 提前返回条件仍是 Canceled，已胜/负但未取消的游戏会被标为取消；全员离开仍返回 true，使外层 Loop 停止。AI 未修改源码，只提供具体状态和调用链提示供用户继续修正。
+- 独立批次 `a2-cancel-review-20261113-02` 保留用户 Game / Loop 快照、环境及源码前后哈希。Go 1.27.3 / Windows amd64，目录 `C:\Dev\Go\A`，HEAD `d02f62199e2b120a9044b3bdbd6abdc3e5beb25e`；验证进程 GOWORK=off 后还原。`go test -mod=readonly ./internal/minesweeper -count=1 -v -timeout=30s`：12 个顶层 PASS、0 SKIP、0 FAIL、退出 0，见[包测试日志](evidence/a2-cancel-review-20261113-02/package-tests.log)及[计数](evidence/a2-cancel-review-20261113-02/test-summary.json)。源码运行前后 SHA256 一致。
+- 本次证明日志格式检查已不再阻断、现有 12 项用例通过；用例没有调用新 Cancel 或 runOnce，不能证明取消和回大厅符合规则。未新增测试、未运行全库/构建/联机/Race，无提交、推送或共享文件修改，继续等待用户修正两处业务判断。
+
+## A2 取消状态与重新打开大厅的有限诊断（2026-11-13）
+
+- 用户第三次保存取消修改：Cancel 增加 Over 提前返回（原 Canceled 提前检查尚保留），GAME leave 返回 false。AI 未修改业务或测试源码。只读判断行为修正后，使用仓库外临时 Go 诊断源及 -overlay 执行真实 Game.Cancel / Loop；仅记录业务输出，不代写核心业务断言，测试框架只负责有界等待及清理。
+- 批次 `a2-cancel-observe-20261113-01` 保留[用户 Game](evidence/a2-cancel-observe-20261113-01/user-game.go.txt)、[用户循环](evidence/a2-cancel-observe-20261113-01/user-loop.go.txt)、[AI 诊断源](evidence/a2-cancel-observe-20261113-01/diagnostic.go.txt)、[环境及临时路径](evidence/a2-cancel-observe-20261113-01/environment.log)及源码前后相同 SHA256。Go 1.27.3 / Windows amd64，HEAD `d02f62199e2b120a9044b3bdbd6abdc3e5beb25e`，GOWORK=off 仅设于验证进程并还原。
+- 首次诊断因 AI 误用不存在的 protocol.MsgLobbyFull 常量而编译失败、退出 1，未执行观察；失败日志及源文件分别保留为 diagnostic-scaffold-error.log 和 diagnostic-before-correction.go.txt。这属于 AI 辅助代码错误，不是用户业务失败。核对协议后仅将诊断常量修正为 MsgLobbyState；重新执行 `go test -mod=readonly -overlay <仓库外 overlay.json> ./internal/minesweeper -run '^TestObserveCancelLifecycle$' -count=1 -v -timeout=10s`，退出 0，完整绝对路径与命令见[日志](evidence/a2-cancel-observe-20261113-01/diagnostic.log)。
+- 实际观察：进行中的 Game 调用 Cancel 后 Over=true、Won=false、Canceled=true，重复调用不变；预置胜局 Over=true/Won=true 和败局 Over=true/Won=false 调用后 Canceled 均保持 false，重复调用不变。真实 Loop 按 Cooperative / Easy 两人开局，Alice 离开后 Bob 的光标请求仍产生广播；Bob 离开记录对局编号、restarting、lobby open，Carol 随后被接受并收到大厅广播；通过关闭 stop 清理循环。前两者为直接状态诊断，后者为本机通道驱动游戏循环，不含 WebSocket、渲染或手动联机。
+- 诊断测试的 PASS 只表示观察程序正常执行，业务结论由上述输出人工核对，不冒充用户核心断言或正式失败→通过回归。本轮未重跑原有包/全库、构建、Race、性能或完整联机；未修改源码、提交、推送或共享文件。临时 overlay 留于环境日志所示系统临时目录，长期证据副本在本批次；不假定临时目录永久保留。下一步指导用户定义结束结果快照，保存及冻结结果仍未完成。
+
+## A2 用户定义结果类型（2026-11-13）
+
+- 用户按 TODO 骨架在 game.go 的 MinePlayer 后新增 MatchResult，独立填写 GameID string、Won bool、Cancel bool、PlayerResult []MinePlayer。AI 读取实际保存文件，确认所需数据及值列表类型齐全，沿用用户字段命名，未代写源码。
+- 本步只有类型声明的静态核对，没有程序测试或结果生成行为，不把 []MinePlayer 的声明本身当作完成复制或冻结。下一步只提供 SnapshotResult 方法的 TODO 骨架和指针取值/独立切片提示，由用户实现复制；保存和跨局留存仍待接入。未提交、推送或修改共享文件。
+
+## A2 用户实现快照复制方法（2026-11-13）
+
+- 用户按思路与 TODO 骨架自行补齐 SnapshotResult：创建 res，复制 GameID/Won/Cancel；以 make([]MinePlayer, 0, len(g.Players)) 创建独立结果切片，逐项 append(*p)，赋给 PlayerResult 后返回。AI 读取实际文件，确认字段对应、切片长度/容量及值复制方式正确，未代写源码。当前 MinePlayer 仅含数值、bool 和 string，逐项值复制足以隔离其字段后续赋值，不泛化为任意嵌套结构的深复制。
+- 批次 `a2-snapshot-method-20261113-01` 保留[用户源码](evidence/a2-snapshot-method-20261113-01/user-game.go.txt)、环境及源码前后相同 SHA256。Go 1.27.3 / Windows amd64，HEAD `d02f62199e2b120a9044b3bdbd6abdc3e5beb25e`，目录 `C:\Dev\Go\A`，GOWORK=off 仅设于验证进程后还原。`go test -mod=readonly ./internal/minesweeper -count=1 -v -timeout=30s`：12 顶层 PASS、0 SKIP、0 FAIL、退出 0，见[日志](evidence/a2-snapshot-method-20261113-01/package-tests.log)。这些既有用例未调用新方法，因此仅为编译、默认静态检查及既有行为回归，不认定快照独立性已实测。
+- 下一步仅安排一个与“结果固定”直接相关的快照隔离用例，由用户按 TODO 准备数据、取快照、修改原玩家并验证旧值保留；随后接入结束调用与跨局保存。未继续相似翻格练习，未执行全库/构建/联机/Race，无源码代写、提交、推送或共享文件修改。
+
+## A2 用户验证快照玩家数据独立性（2026-11-13）
+
+- 用户按 TODO 骨架自行补齐 TestSnapshotResultCopiesPlayers：创建 Alice，直接赋分 7，Cancel 后 SnapshotResult；再将原玩家分数改为 99 并离开，检查 result.PlayerResult[0] 的 Reveals 仍为 7、Left 仍为 false。AI 读取实际文件，未代写核心断言。分数断言的失败提示参数误用原游戏数值，已指出供用户修正；不影响当前条件本身判断快照值。
+- 批次 `a2-snapshot-isolation-20261113-01` 保留[用户测试快照](evidence/a2-snapshot-isolation-20261113-01/user-game-test.go.txt)、环境及源码前后相同 SHA256。Go 1.27.3 / Windows amd64，目录 `C:\Dev\Go\A`，HEAD `d02f62199e2b120a9044b3bdbd6abdc3e5beb25e`，GOWORK=off 仅设于验证进程后还原。`go test -mod=readonly ./internal/minesweeper -run '^TestSnapshotResultCopiesPlayers$' -count=1 -v -timeout=30s`：1 PASS、退出 0，见[日志](evidence/a2-snapshot-isolation-20261113-01/targeted-test.log)。未注入错误取得失败对照，未重跑包/全库、构建、Race 或联机。
+- 本次支持已生成快照与原玩家字段后续赋值隔离，不代表结束路径已调用、历史结果已留存或结果不可被持有者主动修改。下一步按 TODO 将 runOnce 的结束结果交回 Loop 并在进程内按局保存，不接数据库或磁盘功能。AI 未改源码、提交、推送或共享文件。
+
+## A2 用户接入结束结果返回与保存，静态审查（2026-11-13，待调整顺序）
+
+- 用户按 TODO 修改 runOnce 为 (bool, *MatchResult)，保留两个 stop 的 true/nil，胜负和取消分支返回 false 及快照地址；Loop 在 for 外声明 []MatchResult，接收两个返回值并在结果非 nil 时追加其值、记录编号和数量。AI 读取实际保存文件，确认这些部分及胜负分支等待前取快照的位置正确，未代写源码。
+- 静态发现 GAME leave 全员离开分支先执行 SnapshotResult，随后才 Cancel，返回的快照 Cancel 标记因此仍为 false。已给用户“先完成结束状态转换、再取快照”的顺序提示，等待其自行调整。此前测试中的分数失败提示参数仍读取原游戏，亦提醒改为被检查的快照值。
+- 本轮在运行前发现明确业务顺序错误，未运行新的测试/构建/诊断，不沿用旧测试宣称保存链路通过；尚无跨局保存的运行结论。未修改业务或测试源码，无提交、推送、共享文件或依赖修改。
+
+## A2 保存路径观察及连续两局重号（2026-11-13）
+
+- 用户修正为先 Cancel 再 SnapshotResult，并将快照测试的失败提示参数改为快照值；AI 读取实际保存文件，未改源码。独立批次 `a2-result-save-20261113-01` 保留用户 Loop / 测试快照、AI 临时诊断源、环境及源码前后相同 SHA256。
+- Go 1.27.3 / Windows amd64，目录 `C:\Dev\Go\A`，HEAD `d02f62199e2b120a9044b3bdbd6abdc3e5beb25e`，验证进程 GOWORK=off 后还原。`go test -mod=readonly ./internal/minesweeper -count=1 -v -timeout=30s`：13 PASS、0 SKIP、0 FAIL、退出 0，见[日志](evidence/a2-result-save-20261113-01/package-tests.log)及[计数](evidence/a2-result-save-20261113-01/test-summary.json)。
+- 使用仓库外临时源及 overlay 执行 `go test -mod=readonly -overlay <临时 overlay.json> ./internal/minesweeper -run '^TestObserve(ReturnedCancel|TwoStoredMatches)$' -count=1 -v -timeout=10s`，完整绝对路径在[诊断日志](evidence/a2-result-save-20261113-01/diagnostic.log)和[环境](evidence/a2-result-save-20261113-01/environment.log)。AI 辅助诊断无核心业务断言，仅有输入/广播的有界等待与停止清理；退出 0 不等于所有观察值符合需求。
+- runOnce 实际返回 stopped=false、Won=false、Cancel=true，快照有 Alice / Bob 两个玩家且 Left=true，支持取消结果顺序修正。真实 Loop 连续两局 Cooperative / Easy 全员离开后，保存日志 total=1、total=2，随后重新打开大厅接受 Erin，支持循环外列表累积。胜负快照分支本轮未执行；非零成绩保留由此前用户快照隔离用例另行支持。
+- 同一诊断中两局保存编号均为 `mine-1794578159024-4825`，实际违反“再开局新编号”；不能据总计 2 或测试框架 PASS 认定 A2 验收通过。源码现有时间加随机数形式不能保证唯一，下一步在当前进程内结果寿命范围改用 Loop 递增编号并显式传入 runOnce / NewGame，保持布雷 rng 专用于游戏。仅给用户思路和 TODO 修改路径，尚未编写该修复；固定名单仍待处理。
+- 本轮未运行全库、构建、Race、性能或 WebSocket/终端联机，无业务源码代写、提交、推送或共享文件修改。临时 overlay 的长期可查副本在本批次，系统临时目录不保证永久保留。
+
+## A2 用户修复对局编号重复及本次提交前验证（2026-11-13）
+
+- 用户要求提交推送后，又要求先核对并完成今天的编号修复。AI 重新读取实际文件，发现用户已经按 TODO 保存：Loop 的 matchNumber 在 for 外初始化、每轮递增，以 `mine - %d` 生成编号；通过新增 string 参数传给 runOnce、NewGame；Game 直接保存编号，不再调用时间及布雷 rng 生成标识；newTestMineGame 明确提供固定编号 `11`。核心业务与辅助构造器调用由用户填写，AI 未修改源码。
+- 调用链为 Loop 生成编号 → runOnce 接收 → NewGame 保存至 MatchId → 结束分支 SnapshotResult 复制为 GameID → Loop 将结果值追加至进程内列表。选择单 Loop 顺序计数以满足当前单房间及进程内结果寿命，不增加依赖或全局并发计数；服务重启后编号可重复，不宣称跨进程全局唯一。
+- 独立批次 `a2-id-fix-20261113-01` 保留用户三个源码快照、AI 诊断源、环境及源码前后相同 SHA256。Go 1.27.3 / Windows amd64，目录 `C:\Dev\Go\A`，验证前 HEAD `d02f62199e2b120a9044b3bdbd6abdc3e5beb25e`；GOWORK=off 仅设于验证进程后还原。复用前批次的相同诊断步骤，仅更新 runOnce 的新增编号实参以适配签名，没有给诊断添加核心业务断言。完整 overlay 命令在[诊断日志](evidence/a2-id-fix-20261113-01/diagnostic.log)。
+- 实际观察：直接 runOnce 返回 stopped=false、指定 probe-match、Cancel=true、两位玩家 Left=true；真实 Loop 连续两局分别保存 `mine - 1` / total=1、`mine - 2` / total=2，第三个大厅接受 Erin。对照上一批次连续两局相同编号，支持本次进程内编号修复；诊断 PASS 只表示观察程序执行完成，编号结论来自原始输出核对，没有冒充用户编写唯一性断言。
+- `go test -mod=readonly ./... -count=1 -v -timeout=60s`：42 顶层 PASS、0 SKIP、0 FAIL、退出 0，见[全库日志](evidence/a2-id-fix-20261113-01/full-tests.log)及[计数](evidence/a2-id-fix-20261113-01/test-summary.json)；`go build -mod=readonly ./...` 无输出、退出 0，见[构建日志](evidence/a2-id-fix-20261113-01/full-build.log)。未执行 Race、性能或本轮 WebSocket/终端联机，未新增胜负返回值的运行证据。
+- 本次提交范围是自 d02f621 起的 A2 阶段进度、编号修复、项目约定及原始证据，不标记 A2 完成；固定名单及必要综合验收仍待后续。用户明确授权推送个人仓库 origin/main，已只读确认目标为 LearnedYet/multiplayer-terminal-games、远程 main 尚在原始基线 488dd313；将使用普通非强制推送，连同此前未推送的 A1 提交一并上传，不推送 upstream。实际提交/推送结果待 Git 命令回执核对，不预填成功；今天不再开始其他业务修改。
+- 暂存核对：首次全量 `git diff --cached --check` 将原始 source-diff.patch 内必需的补丁上下文空格识别为空白问题而退出 2，提交命令尚未执行。保留这份原始证据不修改；后续空白检查仅排除 `docs/evidence/a2-handoff-check-20261112-01/source-diff.patch`，仍检查其余源码、文档及证据，不调整全局 Git 空白规则。
+
 ## 单项贡献模板
 
 复制后填写；未发生的字段留空。
@@ -272,5 +388,5 @@ go run ./cmd/client -name bob
 
 | 编号 | 任务 | 基准 / 完成提交 | 用户贡献 | 上游复用 / 辅助 | 证据位置 |
 | --- | --- | --- | --- | --- | --- |
-| A1.1-R1（指导下完成） | 字段赋值及消息断言，自动与有限联机验证通过 | `488dd313bc13` / 未提交 | 补字段赋值、玩家 1 输入及两字段判断；格式化报告经指导修正 | 上游架构复用；AI 讲解、格式整理及验证辅助 | [回归通过](evidence/a11-regression-20261111-01/current-targeted-test.log)、[联机截图](evidence/a11-snake-after-fix-20261111-01/server-mode-2-and-clean-shutdown.png) |
-| A1.2-R4（指导下完成，已交付） | 光标身份来源修复，自动验证及正常位置同步有限观察完成 | `488dd313bc13` / 未提交 | 按示例保存身份断言及 `c.ID()` 单行修复；本人操作双客户端并正确解释身份与坐标来源 | 上游协议/游戏复用；AI 提取处理函数、搭建网络外壳、讲解及验证 | [修复前失败](evidence/a12-cursor-before-fix-20261111-01/targeted-test.log)、[修复后通过](evidence/a12-cursor-after-fix-20261111-01/targeted-test.log)、[联机画面](evidence/a12-cursor-manual-20261111-01/02-two-clients-after-bob-move.png) |
+| A1.1-R1（指导下完成） | 字段赋值及消息断言，自动与有限联机验证通过 | `488dd313bc13` / `d02f621` | 补字段赋值、玩家 1 输入及两字段判断；格式化报告经指导修正 | 上游架构复用；AI 讲解、格式整理及验证辅助 | [回归通过](evidence/a11-regression-20261111-01/current-targeted-test.log)、[联机截图](evidence/a11-snake-after-fix-20261111-01/server-mode-2-and-clean-shutdown.png) |
+| A1.2-R4（指导下完成，已交付） | 光标身份来源修复，自动验证及正常位置同步有限观察完成 | `488dd313bc13` / `d02f621` | 按示例保存身份断言及 `c.ID()` 单行修复；本人操作双客户端并正确解释身份与坐标来源 | 上游协议/游戏复用；AI 提取处理函数、搭建网络外壳、讲解及验证 | [修复前失败](evidence/a12-cursor-before-fix-20261111-01/targeted-test.log)、[修复后通过](evidence/a12-cursor-after-fix-20261111-01/targeted-test.log)、[联机画面](evidence/a12-cursor-manual-20261111-01/02-two-clients-after-bob-move.png) |

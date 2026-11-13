@@ -1,0 +1,8 @@
+{
+  "diagnosticExit": 0,
+  "testExit": 0,
+  "buildExit": 0,
+  "pass": 42,
+  "skip": 0,
+  "fail": 0
+}

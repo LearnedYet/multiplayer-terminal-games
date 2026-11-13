@@ -1,0 +1,30 @@
+Command: go test -mod=readonly ./internal/minesweeper -count=1 -v -timeout=30s
+=== RUN   TestFirstClickSafe
+--- PASS: TestFirstClickSafe (0.00s)
+=== RUN   TestFlagToggle
+--- PASS: TestFlagToggle (0.00s)
+=== RUN   TestRevealedCantBeFlagged
+--- PASS: TestRevealedCantBeFlagged (0.00s)
+=== RUN   TestFloodFillRevealsMultiple
+--- PASS: TestFloodFillRevealsMultiple (0.00s)
+=== RUN   TestFlagsLeft
+--- PASS: TestFlagsLeft (0.00s)
+=== RUN   TestMultiplayerCursors
+--- PASS: TestMultiplayerCursors (0.00s)
+=== RUN   TestGameOverOnMine
+--- PASS: TestGameOverOnMine (0.00s)
+=== RUN   TestNoRevealAfterGameOver
+--- PASS: TestNoRevealAfterGameOver (0.00s)
+=== RUN   TestVisibleCellsHidesMines
+--- PASS: TestVisibleCellsHidesMines (0.00s)
+=== RUN   TestPlayerLeaveRetainsScore
+--- PASS: TestPlayerLeaveRetainsScore (0.00s)
+=== RUN   TestLeftPlayerCannotFlag
+--- PASS: TestLeftPlayerCannotFlag (0.00s)
+=== RUN   TestLeftPlayerCannotMoveCursor
+--- PASS: TestLeftPlayerCannotMoveCursor (0.00s)
+=== RUN   TestSnapshotResultCopiesPlayers
+--- PASS: TestSnapshotResultCopiesPlayers (0.00s)
+PASS
+ok  	github.com/siyad01/multiplayer-terminal-games/internal/minesweeper	0.445s
+Exit code: 0

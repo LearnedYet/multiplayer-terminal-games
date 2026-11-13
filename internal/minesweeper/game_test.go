@@ -10,7 +10,7 @@ import (
 )
 
 func newTestMineGame(mode Mode) *Game {
-	return NewGame(Difficulties["easy"], mode,
+	return NewGame("11", Difficulties["easy"], mode,
 		rand.New(rand.NewSource(42)))
 }
 
@@ -53,8 +53,8 @@ func TestRevealedCantBeFlagged(t *testing.T) {
 
 	for i, c := range g.Cells {
 		if c.State == StateRevealed {
-			x       := uint8(i % int(g.Width))
-			y       := uint8(i / int(g.Width))
+			x := uint8(i % int(g.Width))
+			y := uint8(i / int(g.Width))
 			changes := g.Flag(0, x, y)
 			if len(changes) > 0 {
 				t.Fatal("should not be able to flag a revealed cell")
@@ -121,8 +121,8 @@ func TestGameOverOnMine(t *testing.T) {
 	// Find a mine and click it
 	for i, c := range g.Cells {
 		if c.IsMine {
-			x      := uint8(i % int(g.Width))
-			y      := uint8(i / int(g.Width))
+			x := uint8(i % int(g.Width))
+			y := uint8(i / int(g.Width))
 			result := g.Reveal(0, x, y)
 			if !result.Exploded {
 				t.Fatal("clicking a mine should explode")
@@ -169,5 +169,104 @@ func TestVisibleCellsHidesMines(t *testing.T) {
 			t.Fatalf("cell %d should be hidden before game starts, got %x",
 				i, c)
 		}
+	}
+}
+
+func TestPlayerLeaveRetainsScore(t *testing.T) {
+	g := newTestMineGame(ModeCooperative)
+	g.AddPlayer(0, "alice")
+	g.AddPlayer(1, "bob")
+
+	// 1. 检查开局生成的 MatchID 不为空
+	if g.MatchId == "" {
+		t.Fatal("expected non-empty MatchID")
+	}
+
+	// 2. Alice 翻开安全格 (4, 4) 获得分数，然后中途离开
+	g.Reveal(0, 4, 4)
+	scoreBeforeLeave := g.Players[0].Reveals
+	if scoreBeforeLeave == 0 {
+		t.Fatal("expected alice to gain score before leaving")
+	}
+
+	// TODO(1): 调用方法让 0 号玩家 (alice) 离开本局
+	g.RemovePlayer(0)
+	// TODO(2): 断言名单里依然保留着 2 个人 (len(g.Players) == 2)，且 alice 的分数没有清零
+	if len(g.Players) != 2 {
+		t.Fatalf("名单中的人数为%v,期望为2", len(g.Players))
+	}
+	if g.Players[0].Reveals != scoreBeforeLeave {
+		t.Fatalf("alice的分数离开后为%d,离开前为%d", g.Players[0].Reveals, scoreBeforeLeave)
+	}
+	// TODO(3): 断言此时全员离开检查 g.AllPlayersLeft() 应该为 false（因为 bob 还在）
+	if g.AllPlayersLeft() {
+		t.Fatalf("玩家全都离开了")
+	}
+	// TODO(4): alice 离开后再尝试插旗 g.Flag(0, 0, 0)，断言返回的 changes 长度为 0
+
+	// TODO(5): 让 1 号玩家 (bob) 也离开，断言此时 g.AllPlayersLeft() 变为 true
+	g.RemovePlayer(1)
+	if !g.AllPlayersLeft() {
+		t.Fatalf("玩家没有全部退出")
+	}
+}
+
+func TestLeftPlayerCannotFlag(t *testing.T) {
+	g := newTestMineGame(ModeCooperative)
+	g.AddPlayer(0, "alice")
+	g.RemovePlayer(0)
+
+	changes := g.Flag(0, 0, 0)
+	if len(changes) != 0 {
+		t.Fatalf("离开后插旗不应产生变化，实际有 %d 项", len(changes))
+	}
+	if g.Cells[0].State != StateHidden {
+		t.Fatal("离开后插旗不应改变目标格子的状态")
+	}
+}
+
+func TestLeftPlayerCannotMoveCursor(t *testing.T) {
+	// TODO：创建 Cooperative 游戏，只加入 Alice
+	g := newTestMineGame(ModeCooperative)
+	g.AddPlayer(0, "alice")
+	// TODO：检查加入后有一个光标
+	cursors := g.AllCursors()
+	if len(cursors) != 1 {
+		t.Fatalf("实际有%d个,期望是1个", len(cursors))
+	}
+	// TODO：让 Alice 离开，检查光标已删除
+	g.RemovePlayer(0)
+	cursors = g.AllCursors()
+	if len(cursors) != 0 {
+		t.Fatalf("实际有%d个,光标未删除", len(cursors))
+	}
+	// TODO：尝试把 Alice 的光标移动到 (3,4)
+	g.MoveCursor(0, 3, 4)
+
+	// TODO：重新查询，检查仍然没有光标
+	cursors = g.AllCursors()
+	if len(cursors) != 0 {
+		t.Fatalf("实际有%d个,光标未删除", len(cursors))
+	}
+}
+func TestSnapshotResultCopiesPlayers(t *testing.T) {
+	// TODO：创建 Cooperative 游戏并加入 Alice
+	g := newTestMineGame(ModeCooperative)
+	g.AddPlayer(0, "alice")
+	// TODO：直接把 Alice 的 Reveals 设为 7，作为测试数据
+	g.Players[0].Reveals = 7
+	// TODO：取消本局，再调用 SnapshotResult 保存结果
+	g.Cancel()
+	result := g.SnapshotResult()
+	// TODO：把原游戏中 Alice 的 Reveals 改成 99，并让她离开
+	g.Players[0].Reveals = 99
+	g.RemovePlayer(0)
+	// TODO：断言快照中的 Alice 仍为 7 分
+	if result.PlayerResult[0].Reveals != 7 {
+		t.Fatalf("分数错误,期望为7,实际为%d", result.PlayerResult[0].Reveals)
+	}
+	// TODO：断言快照中的 Alice 仍未离开
+	if result.PlayerResult[0].Left {
+		t.Fatalf("玩家%d离开了", 0)
 	}
 }

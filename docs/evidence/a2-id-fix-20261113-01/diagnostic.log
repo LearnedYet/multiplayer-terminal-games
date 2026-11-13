@@ -1,0 +1,43 @@
+Command: go test -mod=readonly -overlay C:\Users\c8618\AppData\Local\Temp\a2-id-fix-e3a427d8fd964efd850846ff41134430/overlay.json ./internal/minesweeper -run '^TestObserve(ReturnedCancel|TwoStoredMatches)$' -count=1 -v -timeout=10s
+=== RUN   TestObserveReturnedCancel
+2026/11/13 06:38:13 minesweeper: lobby open
+    observe_result_test.go:26: OBSERVE join alice accepted=true
+    observe_result_test.go:26: OBSERVE join bob accepted=true
+2026/11/13 06:38:13 minesweeper: starting mode=1 diff=easy players=2
+2026/11/13 06:38:13 minesweeper: board 9x9 mines=10
+2026/11/13 06:38:13 minesweeper: player 0 left
+    observe_result_test.go:41: OBSERVE after alice leaves: bob cursor broadcast received; same match still processing
+2026/11/13 06:38:13 minesweeper: player 1 left
+2026/11/13 06:38:13 游戏已结束 对局记录为:probe-match
+    observe_result_test.go:21: OBSERVE runOnce returned stopped=false result=&{GameID:probe-match Won:false Cancel:true PlayerResult:[{ID:0 Name:alice Reveals:0 Flags:0 Left:true} {ID:1 Name:bob Reveals:0 Flags:0 Left:true}]}
+--- PASS: TestObserveReturnedCancel (0.02s)
+=== RUN   TestObserveTwoStoredMatches
+2026/11/13 06:38:13 minesweeper: lobby open
+    observe_result_test.go:60: OBSERVE join alice accepted=true
+    observe_result_test.go:60: OBSERVE join bob accepted=true
+2026/11/13 06:38:13 minesweeper: starting mode=1 diff=easy players=2
+2026/11/13 06:38:13 minesweeper: board 9x9 mines=10
+2026/11/13 06:38:13 minesweeper: player 0 left
+    observe_result_test.go:75: OBSERVE after alice leaves: bob cursor broadcast received; same match still processing
+2026/11/13 06:38:13 minesweeper: player 1 left
+2026/11/13 06:38:13 游戏已结束 对局记录为:mine - 1
+2026/11/13 06:38:13 minesweeper: 保存了比赛结果id = mine - 1 total = 1
+2026/11/13 06:38:13 minesweeper: restarting
+2026/11/13 06:38:13 minesweeper: lobby open
+    observe_result_test.go:60: OBSERVE join carol accepted=true
+    observe_result_test.go:79: OBSERVE after last leave: new lobby accepts carol and broadcasts lobby state
+    observe_result_test.go:60: OBSERVE join dave accepted=true
+2026/11/13 06:38:13 minesweeper: starting mode=1 diff=easy players=2
+2026/11/13 06:38:13 minesweeper: board 9x9 mines=10
+2026/11/13 06:38:13 minesweeper: player 2 left
+2026/11/13 06:38:13 minesweeper: player 3 left
+2026/11/13 06:38:13 游戏已结束 对局记录为:mine - 2
+2026/11/13 06:38:13 minesweeper: 保存了比赛结果id = mine - 2 total = 2
+2026/11/13 06:38:13 minesweeper: restarting
+2026/11/13 06:38:13 minesweeper: lobby open
+    observe_result_test.go:60: OBSERVE join erin accepted=true
+    observe_result_test.go:88: OBSERVE two canceled matches completed; third lobby accepts erin; production logs show stored counts
+--- PASS: TestObserveTwoStoredMatches (0.00s)
+PASS
+ok  	github.com/siyad01/multiplayer-terminal-games/internal/minesweeper	0.418s
+Exit code: 0

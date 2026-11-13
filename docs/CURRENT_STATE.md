@@ -2,13 +2,37 @@
 
 ## 阶段与边界
 
-- A1.2 扫雷光标消息身份归属修复于 2026-11-11（America/Los_Angeles）由用户开启并于当日完成停止。用户指导下保存核心断言及 `c.ID()` 修复，同一测试修复前失败、修复后通过，全库 38 项测试及构建通过，双客户端正常位置同步和停机有有限截图证据；简短学习复盘已完成。下一任务尚未授权。
+- A2 单对局生命周期于 2026-11-11（America/Los_Angeles）开启，首版规则于 2026-11-12 确认。初期代码由用户在 Gemini 指导下编写；2026-11-12 交回本聊天继续按 TODO 带学。2026-11-13 用户编号修复已保存，连续两局诊断及全库 42 项测试、构建通过，准备按用户明确指令提交推送本次进度。核心代码仍由用户填写，A2 整体未完成，固定名单与阶段综合验收后续处理。
+- A1.2 扫雷光标消息身份归属修复于 2026-11-11 完成。用户指导下保存核心断言及 `c.ID()` 修复，同一测试修复前失败、修复后通过，全库 38 项测试及构建通过，双客户端正常位置同步和停机有有限截图证据；学习复盘已完成。
 - A1.1 模式切换修复与回归测试于 2026-11-11 完成交付；用户于 2026-11-02 开启任务，原任务书为 `C:\Dev\Go\docs\A_PHASE1_TASK.md`。其成果及证据保留，不重做验收。
 - Phase 0 原始环境与基线于 2026-10-29 记录，本人最小复验于 2026-11-02 收尾；历史结果不重写。
-- 原始上游与当前 HEAD：`488dd313bc13de387d12a24f5d05a5c28bed5899`；本地修改尚未提交。原始环境、结果及模块说明见 [BASELINE.md](BASELINE.md)。
+- 原始上游基线：`488dd313bc13de387d12a24f5d05a5c28bed5899`；本次提交前 HEAD 为 `d02f62199e2b120a9044b3bdbd6abdc3e5beb25e`，包含 A1.1/A1.2 和既有文档证据。本次追加 A2 阶段进度及编号修复，最终提交号与推送结果以 Git 历史、origin/main 及交付回执为准。原始环境、结果及模块说明见 [BASELINE.md](BASELINE.md)。
 - Snake、Minesweeper、WebSocket Hub、二进制协议及终端客户端均为上游已有能力。个人改动、AI 辅助及原始验证分别记录于 [EVIDENCE.md](EVIDENCE.md)。
-- A1.1 未修改依赖、许可证或共享文件，未提交、推送或部署。A1.2 同样没有此类操作授权；构建产物与临时副本仍放仓库外。
+- A1.1/A1.2 开发期间未改依赖、许可证或共享文件；用户本轮另行授权本地提交并已完成，没有推送或部署。构建产物与临时副本仍放仓库外。
 - 用户说明 PORTFOLIO.md 为旧 Gemini 同步材料，已不再作为当前进度依据或同步待办。当前进度以本项目状态和证据为准，共同学习规则继续遵守。
+
+## A2 当前阶段（规则已确认，接续既有改动）
+
+- 阶段目标：沿用现有单房间 Cooperative / Easy 玩法，为每局保存稳定编号及本局参与者记录，明确开始、胜负、取消和再次开局，并形成结束后不再随游戏状态变化的结果。本阶段不接入 MySQL/Redis、多房间或账号系统。
+- 核心学习点：在线连接名单与本局参与记录的不同用途；状态转换、数据保存期限、结果快照及回归断言。既有核心代码和断言由用户在 Gemini 指导下编写，本聊天现已接回带学、审查及验证；后续仍由用户编辑核心内容，不将其他指导工具的工作记为本聊天实现。
+- 阶段开启时的基准现状：`Loop` 反复调用 `runOnce`；大厅接到房主 start 后创建 Game 并加入玩家；游戏中允许 Cooperative 中途加入；原版 leave 调用 `Game.RemovePlayer` 删除含 Reveals/Flags 的玩家对象及光标。胜负时广播后返回下一轮大厅；全员离开分支未见取消结果。上述为源码调查，未执行新的场景测试。
+- 第一个问题示例：Alice 本局已有翻格贡献，离开后仍应能在本局结果里找到；原版 RemovePlayer 会删除该记录。当前改动已使用 Left 标记离开并保留玩家对象，用户已按指导补强“离开前后成绩完全相同”的断言，定向测试通过；后续接续操作限制、循环与结束结果。
+- 已确认首版业务规则（2026-11-12）：开局固定本局名单，新连接不加入当前局；离开者停止参与操作但保留本局成绩；胜负沿用当前 Cooperative 规则；全员离开把本局记为取消；结束结果固定，再次开局产生新编号。此前保留中途加入的备选本次不采用。
+- 实现前注意：Hub 会复用短玩家编号，不能把保留下来的本局参与记录简单等同新的在线连接；拒绝中途加入也需在输入接纳与连接管理链路验证，不能只改 join 回复后认定安全。编号形式、具体结果结构及规则实现待逐步说明，不预先批准新依赖或通用抽象。
+- 验收方向：结束后不再改分，离开者本局成绩保留，全员离开能取消，连续两局编号和结果不混用；加入政策按确认规则验证，保留相关测试/构建及有限联机证据，并按实际表现记录学习范围。当前通过的是早期模型用例及扫雷包测试，不代表 A2 验收完成。
+- 当前文件实查（2026-11-13）：用户已在 Loop 维护递增 matchNumber，生成 matchID 后沿 runOnce → NewGame 保存至 Game.MatchId，移除 Game 中的时间和随机编号表达式，测试辅助构造器提供固定编号。与修复前相同的两局诊断现显示 mine - 1、mine - 2，保存数量 1、2；取消快照正确、随后大厅可接受新玩家。Cooperative 中途加入仍未处理，A2 未完成。
+- 接回验证：`go test -mod=readonly ./internal/minesweeper -run '^TestPlayerLeaveRetainsScore$' -count=1 -v -timeout=30s` 通过；`go test -mod=readonly ./internal/minesweeper -count=1 -v -timeout=30s` 为 10 PASS、0 SKIP、0 FAIL，均退出 0。Go 1.27.3 / Windows amd64，进程 GOWORK=off；源码前后哈希一致。日志及原始快照见 [接回检查批次](evidence/a2-handoff-check-20261112-01/)。本轮未执行全库测试、构建、Race 或联机，不沿用 A1 的 38 PASS 证明当前 A2。
+- 最新小步（2026-11-12）：用户已保存 `g.Players[0].Reveals != scoreBeforeLeave` 判断，Fatalf 参数按“离开后、离开前”与提示文本一致。AI 读取实际文件后执行同一定向命令，1 PASS、退出 0，源码前后哈希一致；本步只改断言，未重复包测试或扩大验证。见[成绩断言验证](evidence/a2-score-assertion-20261112-01/targeted-test.log)，不记为独立设计测试或业务修复。
+- 插旗小步已保存（2026-11-12）：用户已将原插旗检查移至独立 TestLeftPlayerCannotFlag，使用未翻开的棋盘，Alice 离开后对 (0,0) 插旗，检查返回 changes 为空且目标仍隐藏。AI 读取实际文件后运行 `go test -mod=readonly ./internal/minesweeper -count=1 -v -timeout=30s`：11 PASS、0 SKIP、0 FAIL，退出 0；源码前后哈希一致，见[本批次日志](evidence/a2-left-flag-20261112-01/package-tests.log)。代码来自此前已提供的完整示例，仍记为指导下完成；当前不再使用完整答案带学。
+- 光标练习完成（2026-11-12）：用户按思路及 TODO 骨架自行补齐 TestLeftPlayerCannotMoveCursor 的动作与三次数量断言，分别检查加入后一个光标、离开后无光标、离开后尝试移动仍无光标；每次动作后重新查询 AllCursors，删除了占位失败。AI 读取实际文件并运行 `go test -mod=readonly ./internal/minesweeper -run '^TestLeftPlayerCannotMoveCursor$' -count=1 -v -timeout=30s`：1 PASS、退出 0，源码前后哈希一致，见[本批次](evidence/a2-left-cursor-20261112-01/targeted-test.log)。仅认定完成给定骨架的相似小变化，不升级为独立设计整个模块。
+- 取消路径核验（2026-11-13）：用户第三次保存加入 Over 提前返回，并将 GAME leave 改为 return false。AI 临时 overlay 诊断（不改源码/核心断言）观察到进行中的 Game 取消后 Over=true、Canceled=true；胜局/败局调用 Cancel 后保留原结果，重复调用不变；Cooperative / Easy 两人局中 Alice 离开后 Bob 光标广播仍可收到，Bob 离开后出现 restarting / lobby open 并接受 Carol。诊断执行成功退出 0，业务/测试源码前后哈希一致，见[诊断原始日志](evidence/a2-cancel-observe-20261113-01/diagnostic.log)。这是实际调用的有限诊断，不是新增业务断言回归测试或双客户端联机，固定结果快照尚未实现。
+- 结果类型已保存（2026-11-13）：用户按 TODO 定义 MatchResult，实际字段为 GameID string、Won bool、Cancel bool、PlayerResult []MinePlayer，字段类型符合当前需要，保留用户命名。AI 只读核对，未修改源码；本步仅声明数据类型，未新增程序测试，不据此宣称结果已复制、冻结或保存。
+- 快照方法已保存（2026-11-13）：用户按 TODO 补齐 SnapshotResult，res 复制 GameID/Won/Cancel，新建长度 0、容量 len(g.Players) 的 []MinePlayer，遍历 append 玩家值 *p，再赋给 res.PlayerResult 并返回。AI 静态核对正确，包测试 12 PASS、0 SKIP、0 FAIL、退出 0，源码前后哈希一致，见[本批次日志](evidence/a2-snapshot-method-20261113-01/package-tests.log)。既有 12 项未调用 SnapshotResult，快照独立性尚待业务用例验证；结束流程尚未调用和保存结果。
+- 快照独立性已验证（2026-11-13）：用户按 TODO 补齐 TestSnapshotResultCopiesPlayers：Alice 7 分取消后取快照，将原玩家改为 99 分并 RemovePlayer，断言快照分数仍为 7、Left 仍为 false。定向运行 1 PASS、退出 0，源码前后哈希一致，见[本批次日志](evidence/a2-snapshot-isolation-20261113-01/targeted-test.log)。分数失败提示目前误读 g.Players 的数值而非快照值，提示用户顺手修正；断言条件本身正确。
+- 保存路径核验（2026-11-13）：用户已修正取消快照顺序和失败提示。包测试 13 PASS、0 SKIP、0 FAIL、退出 0；AI 仓库外 overlay 诊断观察到 runOnce 返回 stopped=false、Cancel=true 且两位玩家 Left=true；真实 Loop 两轮取消后日志数量 1、2，第三个大厅接受新玩家。但两轮编号均为 mine-1794578159024-4825，编号唯一性实际失败。见[本批次诊断](evidence/a2-result-save-20261113-01/diagnostic.log)及[包测试](evidence/a2-result-save-20261113-01/package-tests.log)。诊断仅输出观察值，没有用户核心断言，不能把诊断 PASS 当作编号验收通过；胜负返回结果仍仅静态核对。结果仅进程内保留，尚无外部历史查询接口。
+- 本次收尾：编号碰撞已在单 Loop 进程内修复，用户按 TODO 保存三个文件，AI 未代写业务。重复诊断正常退出 0；`go test -mod=readonly ./... -count=1 -v -timeout=60s` 为 42 PASS、0 SKIP、0 FAIL、退出 0，`go build -mod=readonly ./...` 退出 0，源码前后哈希一致，见[编号修复批次](evidence/a2-id-fix-20261113-01/)。按用户要求本次提交推送后停止今天的开发；下次从固定名单及必要综合验收继续，不再扩大练习。
+- 带学方式更新（2026-11-12）：用户要求后续业务代码及核心断言只给思路和 TODO 骨架，不贴完整答案，由其自行填写。此前报告“测试跑通了”时新插旗用例尚未保存，未据此认定通过；现已保存并由本聊天实测通过，按上条更新。AI 仅提供提示、审查和验证，不代填下一小步核心断言。
+- 编号边界：现有毫秒时间加游戏 rng 的四位随机数已经在相同批次复现连续两局重号；本步递增编号仅保证同一 Loop 运行期间的唯一性，进程重启后可重复，与本阶段进程内结果列表的寿命一致。跨进程、跨重启标识及磁盘持久性不在当前实现中。
 
 ## A1.2 交付（指导下完成）
 
@@ -84,15 +108,16 @@
 | R4 | WebSocket 允许任意 Origin；原扫雷光标入口采用消息内玩家 ID，读连接限制与 Snake 不同。 | 光标身份来源已由用户修复，同测试失败→通过、全库验证和正常位置同步的有限截图有证据；Origin、读连接限制及其他治理不在本任务范围。 |
 | R5 | 存在忽略 WriteMessage 错误、recover/default 丢弃消息及部分测试依赖 Sleep 的路径。 | 本次未改变既有非阻塞策略；通道缓冲满时仍可能跳过转发。可靠性需专项验证。 |
 | R6 | 此前 GitHub 直连重置、Go 代理超时，借助本机代理完成下载。 | 网络可变，旧代理配置不代表以后仍可用。 |
+| R7 | A2 读码时看到 Game.Reveal 直接以坐标计算 Cells 索引，当前扫雷入口仅检查消息长度，未见棋盘坐标范围检查。 | 仅静态记录，未运行异常坐标用例；独立输入治理问题，不在本次生命周期开阶段时顺带修复。 |
 
 ## Git 与个人仓库（2026-11-11）
 
 - 用户已授权创建个人副本并使用本人 GitHub 仓库作为远程地址；AI 已通过登录为 LearnedYet 的 GitHub CLI 创建公开 Fork：[LearnedYet/multiplayer-terminal-games](https://github.com/LearnedYet/multiplayer-terminal-games)。GitHub API 确认 parent 为 siyad01/multiplayer-terminal-games。
-- 本地仓库原已存在于 `C:\Dev\Go\A\.git`，未重新初始化。`origin` 已指向个人 Fork，原作者地址保留为 `upstream`；本仓库的默认推送远程设为 origin。HEAD 仍为原始提交，尚未提交或上传本地修改。
+- 本地仓库原已存在于 `C:\Dev\Go\A\.git`，未重新初始化。`origin` 指向个人 Fork，原作者地址保留为 `upstream`；默认推送远程为 origin。用户本轮授权本地提交，HEAD 已为 `d02f621`，未推送；详见 [提交与启动记录](evidence/a2-start-20261111-01/local-commit-and-phase-start.log)。
 - 本次只创建上游副本、调整本地 Git 配置并记录事实，不修改 A1.2 业务代码或验收状态，也未进行实际 push。操作、首次参数错误及最终核对见 [Git 配置证据](evidence/git-personal-fork-20261111-01/setup.log)；这项配置不计为个人游戏功能实现。
 
 ## 下一步与未授权方向
 
-A1.1、A1.2 均已交付并停止，没有当前阻碍。后续任务须由用户明确开启，再明确范围、核心学习点、作者及验收终点。旧 PORTFOLIO 不再需要同步，现有共同学习规则仍有效。
+A1.1/A1.2 历史成果保留；A2 已接通取消、快照复制、循环内留存和进程内递增编号，42 项全库测试与构建通过。今天按用户要求提交推送本次进度后停止，A2 尚未完整交付；下次处理固定开局名单及必要综合验收。保留 Gemini 与本聊天的指导归属，继续只给用户思路和 TODO 骨架。旧 PORTFOLIO 不再需要同步。
 
-除已批准的光标身份归属外，其他外部输入治理、连接错误处理、复现性及量化基线、对局生命周期、房间隔离等均未获本任务授权。不自动进入其他功能、提交、推送或部署。
+其他输入治理、量化基线、房间隔离及数据库均不在当前 A2 范围，不自动推送、部署或安装组件。

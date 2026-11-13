@@ -1,0 +1,7 @@
+Command: go test -mod=readonly ./internal/minesweeper -count=1 -v -timeout=30s
+# github.com/siyad01/multiplayer-terminal-games/internal/minesweeper
+# [github.com/siyad01/multiplayer-terminal-games/internal/minesweeper]
+internal\minesweeper\loop.go:290:49: log.Printf format %d has arg gameID of wrong type string
+FAIL	github.com/siyad01/multiplayer-terminal-games/internal/minesweeper [build failed]
+FAIL
+Exit code: 1

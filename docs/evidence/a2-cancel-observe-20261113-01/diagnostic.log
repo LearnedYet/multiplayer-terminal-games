@@ -1,0 +1,25 @@
+Command: go test -mod=readonly -overlay C:\Users\c8618\AppData\Local\Temp\a2-cancel-observe-abf7d2a8b7004c1c8012b8ee53130b66/overlay.json ./internal/minesweeper -run '^TestObserveCancelLifecycle$' -count=1 -v -timeout=10s
+=== RUN   TestObserveCancelLifecycle
+    observe_cancel_test.go:18: OBSERVE running after Cancel: Over=true Won=false Canceled=true
+    observe_cancel_test.go:20: OBSERVE running after second Cancel: Over=true Won=false Canceled=true
+    observe_cancel_test.go:18: OBSERVE won after Cancel: Over=true Won=true Canceled=false
+    observe_cancel_test.go:20: OBSERVE won after second Cancel: Over=true Won=true Canceled=false
+    observe_cancel_test.go:18: OBSERVE lost after Cancel: Over=true Won=false Canceled=false
+    observe_cancel_test.go:20: OBSERVE lost after second Cancel: Over=true Won=false Canceled=false
+2026/11/13 03:50:45 minesweeper: lobby open
+    observe_cancel_test.go:36: OBSERVE join alice accepted=true
+    observe_cancel_test.go:36: OBSERVE join bob accepted=true
+2026/11/13 03:50:45 minesweeper: starting mode=1 diff=easy players=2
+2026/11/13 03:50:45 minesweeper: board 9x9 mines=10
+2026/11/13 03:50:45 minesweeper: player 0 left
+    observe_cancel_test.go:51: OBSERVE after alice leaves: bob cursor broadcast received; same match still processing
+2026/11/13 03:50:45 minesweeper: player 1 left
+2026/11/13 03:50:45 游戏已结束 对局记录为:mine-1794570645091-1286
+2026/11/13 03:50:45 minesweeper: restarting
+2026/11/13 03:50:45 minesweeper: lobby open
+    observe_cancel_test.go:36: OBSERVE join carol accepted=true
+    observe_cancel_test.go:55: OBSERVE after last leave: new lobby accepts carol and broadcasts lobby state
+--- PASS: TestObserveCancelLifecycle (0.02s)
+PASS
+ok  	github.com/siyad01/multiplayer-terminal-games/internal/minesweeper	0.367s
+Exit code: 0

@@ -1,0 +1,10 @@
+Batch: a2-handoff-check-20261112-01
+Chat: A project takeover review
+Working directory: C:\Dev\Go\A
+GOWORK=off (process only)
+HEAD:
+d02f62199e2b120a9044b3bdbd6abdc3e5beb25e
+go version go1.27.3 windows/amd64
+windows
+amd64
+off

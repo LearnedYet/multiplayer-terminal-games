@@ -1,0 +1,12 @@
+Client date: 2026-11-11, America/Los_Angeles
+Authorization: user requested local commit, then next phase.
+Command: git add -- AGENTS.md docs/CURRENT_STATE.md docs/EVIDENCE.md
+Exit code: 0
+Command: git commit -m "fix: preserve snake mode channel and bind mine cursor to connection identity"
+Exit code: 0
+Commit: d02f62199e2b120a9044b3bdbd6abdc3e5beb25e
+Subject: fix: preserve snake mode channel and bind mine cursor to connection identity
+Commit includes 92 project source/test/document/evidence files; LICENSE and dependencies unchanged.
+Source files matched previously verified snapshots (38 tests and build); no program tests rerun in this commit turn.
+git status --porcelain immediately after commit and before A2 startup docs: empty
+No push performed. A2 startup documentation follows this commit.

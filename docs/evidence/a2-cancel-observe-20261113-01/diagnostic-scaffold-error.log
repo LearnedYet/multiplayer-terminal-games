@@ -1,0 +1,6 @@
+Command: go test -mod=readonly -overlay C:\Users\c8618\AppData\Local\Temp\a2-cancel-observe-abf7d2a8b7004c1c8012b8ee53130b66/overlay.json ./internal/minesweeper -run '^TestObserveCancelLifecycle$' -count=1 -v -timeout=10s
+FAIL	github.com/siyad01/multiplayer-terminal-games/internal/minesweeper [build failed]
+# github.com/siyad01/multiplayer-terminal-games/internal/minesweeper [github.com/siyad01/multiplayer-terminal-games/internal/minesweeper.test]
+C:\Users\c8618\AppData\Local\Temp\a2-cancel-observe-abf7d2a8b7004c1c8012b8ee53130b66\observe_test.go:54:23: undefined: protocol.MsgLobbyFull
+FAIL
+Exit code: 1
