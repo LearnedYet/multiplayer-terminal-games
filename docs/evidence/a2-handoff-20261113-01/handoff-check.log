@@ -1,0 +1,7 @@
+Handoff read-only verification; no new program tests.
+HEAD and cached origin/main:
+5e47ebf6571456f1833e628e2bec136aeaf1aefc
+5e47ebf6571456f1833e628e2bec136aeaf1aefc
+Status before handoff documentation:
+?? docs/evidence/a2-handoff-20261113-01/
+All three minesweeper source/test hashes match a2-id-fix-20261113-01.

@@ -9,17 +9,17 @@ import (
 )
 
 const (
-	writeWait = 10*time.Second
+	writeWait = 10 * time.Second
 
-	pongWait = 60*time.Second
+	pongWait = 60 * time.Second
 
-	pingPeriod = (pongWait*9)/10
+	pingPeriod = (pongWait * 9) / 10
 
 	maxMessageSize = 512
 )
 
 func (c *Client) readPump(conn *websocket.Conn) {
-	defer func ()  {
+	defer func() {
 		c.hub.Unregister(c)
 		conn.Close()
 		log.Printf("readPump existing for client %d", c.id)
@@ -38,9 +38,9 @@ func (c *Client) readPump(conn *websocket.Conn) {
 		_, data, err := conn.ReadMessage()
 		if err != nil {
 			if websocket.IsUnexpectedCloseError(err,
-			websocket.CloseGoingAway,
-			websocket.CloseNormalClosure,
-			websocket.CloseNoStatusReceived) {
+				websocket.CloseGoingAway,
+				websocket.CloseNormalClosure,
+				websocket.CloseNoStatusReceived) {
 				log.Printf("client %d unexpected close: %v", c.id, err)
 			}
 			return
@@ -80,7 +80,7 @@ func (c *Client) readPump(conn *websocket.Conn) {
 		case protocol.MsgStartGame:
 			// Only processed if this client is the host —
 			// the game loop enforces that rule
-			c.hub.ForwardStart(c.id)
+			c.hub.ForwardStart(c.id, c.sessionID)
 
 		case protocol.MsgPlayAgain:
 			// Client wants to re-enter the lobby after game over.
@@ -89,7 +89,7 @@ func (c *Client) readPump(conn *websocket.Conn) {
 			c.hub.Rejoin(c)
 
 		case protocol.MsgNextLevel:
-			c.hub.ForwardStart(c.id) // reuse start channel to signal "next level"
+			c.hub.ForwardStart(c.id, c.sessionID) // reuse start channel to signal "next level"
 		case protocol.MsgLeave:
 			log.Printf("client %d sent leave message", c.id)
 			return
@@ -102,7 +102,7 @@ func (c *Client) readPump(conn *websocket.Conn) {
 
 func (c *Client) writePump(conn *websocket.Conn) {
 	ticker := time.NewTicker(pingPeriod)
-	defer func ()  {
+	defer func() {
 		ticker.Stop()
 		conn.Close()
 		log.Printf("writePump existing for client %d", c.id)

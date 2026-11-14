@@ -1,0 +1,4 @@
+Command: go test -mod=readonly ./internal/minesweeper -run ^$ -count=1 -timeout=30s
+Purpose: compile AI fixture only; no business test executed
+ok  	github.com/siyad01/multiplayer-terminal-games/internal/minesweeper	0.367s [no tests to run]
+Exit code: 0

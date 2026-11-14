@@ -1,0 +1,8 @@
+Batch: a2-session-regression-20261114-01
+Executor: A2 continuation chat; user business assertions, AI fixture and validation
+cwd: C:/Dev/Go/A
+GOWORK=off (process only)
+go version go1.27.3 windows/amd64
+5e47ebf6571456f1833e628e2bec136aeaf1aefc
+Temporary overlay: C:\Users\c8618\AppData\Local\Temp\a2-session-regression-9e42f6130e734fd3abc163295fda7439\overlay.json
+Before source: docs/evidence/a2-session-lobby-20261113-01/user-loop-before-game-guard.go.txt

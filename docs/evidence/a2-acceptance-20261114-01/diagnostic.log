@@ -1,0 +1,83 @@
+Command: go test -mod=readonly -overlay C:/Users/c8618/AppData/Local/Temp/a2-acceptance-20261114-01/overlay.json ./internal/server ./cmd/mineserver -run '^TestObserveA2' -count=1 -v -timeout=45s
+=== RUN   TestObserveA2HubPaths
+2026/11/14 02:22:39 hub started
+2026/11/14 02:22:39 hub: registered (id=0 name=alice total=1)
+    a2_observe_test.go:36: OBSERVE initial join={PlayerID:0 SessionID:1 Name:alice ResultChan:0x2141a43ca000}
+2026/11/14 02:22:39 hub: unregistered (id=0 total=0)
+    a2_observe_test.go:38: OBSERVE initial leave={PlayerID:0 SessionID:1}
+2026/11/14 02:22:39 hub: registered (id=0 name=carol total=1)
+    a2_observe_test.go:41: OBSERVE reused join={PlayerID:0 SessionID:2 Name:carol ResultChan:0x2141a4246480} oldSession=1 newSession=2
+2026/11/14 02:22:39 hub: client 0 rejoin lobby
+    a2_observe_test.go:46: OBSERVE first forwarded rejoin after stale/current pair={PlayerID:0 SessionID:2 Name:carol ResultChan:0x2141a43ca080}
+2026/11/14 02:22:39 hub: client 0 too slow, dropping
+    a2_observe_test.go:50: OBSERVE slow-client leave={PlayerID:0 SessionID:2} expectedConnectionID=0 expectedSession=2
+2026/11/14 02:22:39 hub: unregister ignored for stale client id=0
+2026/11/14 02:22:39 hub: registered (id=0 name=dave total=1)
+    a2_observe_test.go:54: OBSERVE lobby usable after slow drop: join={PlayerID:0 SessionID:3 Name:dave ResultChan:0x2141a4420000}
+2026/11/14 02:22:39 hub: unregistered (id=0 total=0)
+    a2_observe_test.go:56: OBSERVE final leave={PlayerID:0 SessionID:3}
+--- PASS: TestObserveA2HubPaths (0.02s)
+PASS
+ok  	github.com/siyad01/multiplayer-terminal-games/internal/server	0.573s
+=== RUN   TestObserveA2NetworkLifecycle
+    a2_observe_test.go:160: OBSERVE actual reused IDs alice=0 bob=1 carol=0 rejection="game in progress — wait for next round"
+    a2_observe_test.go:162: OBSERVE routed input={PlayerID:0 SessionID:3 Action:1 X:0 Y:0}
+    a2_observe_test.go:165: OBSERVE routed input={PlayerID:1 SessionID:2 Action:1 X:1 Y:0}
+    a2_observe_test.go:170: OBSERVE after rejected/new and valid inputs flagsLeft=9 scores=[0 0] target0=0 target1=16
+    a2_observe_test.go:173: OBSERVE first canceled result={GameID:mine - 1 Won:false Cancel:true PlayerResult:[{ID:0 Name:Alice Reveals:0 Flags:0 Left:true} {ID:1 Name:Bob Reveals:0 Flags:1 Left:true}]}
+    a2_observe_test.go:184: OBSERVE routed input={PlayerID:0 SessionID:3 Action:0 X:4 Y:4}
+    a2_observe_test.go:201: OBSERVE routed input={PlayerID:0 SessionID:3 Action:0 X:0 Y:0}
+    a2_observe_test.go:201: OBSERVE routed input={PlayerID:0 SessionID:3 Action:0 X:2 Y:0}
+    a2_observe_test.go:201: OBSERVE routed input={PlayerID:0 SessionID:3 Action:0 X:3 Y:0}
+    a2_observe_test.go:201: OBSERVE routed input={PlayerID:0 SessionID:3 Action:0 X:0 Y:1}
+    a2_observe_test.go:201: OBSERVE routed input={PlayerID:0 SessionID:3 Action:0 X:0 Y:2}
+    a2_observe_test.go:201: OBSERVE routed input={PlayerID:0 SessionID:3 Action:0 X:1 Y:2}
+    a2_observe_test.go:201: OBSERVE routed input={PlayerID:0 SessionID:3 Action:0 X:2 Y:2}
+    a2_observe_test.go:201: OBSERVE routed input={PlayerID:0 SessionID:3 Action:0 X:3 Y:2}
+    a2_observe_test.go:201: OBSERVE routed input={PlayerID:0 SessionID:3 Action:0 X:0 Y:3}
+    a2_observe_test.go:201: OBSERVE routed input={PlayerID:0 SessionID:3 Action:0 X:2 Y:3}
+    a2_observe_test.go:201: OBSERVE routed input={PlayerID:0 SessionID:3 Action:0 X:7 Y:3}
+    a2_observe_test.go:201: OBSERVE routed input={PlayerID:0 SessionID:3 Action:0 X:8 Y:4}
+    a2_observe_test.go:201: OBSERVE routed input={PlayerID:0 SessionID:3 Action:0 X:0 Y:8}
+    a2_observe_test.go:201: OBSERVE routed input={PlayerID:0 SessionID:3 Action:0 X:8 Y:8}
+    a2_observe_test.go:205: OBSERVE won result={GameID:mine - 2 Won:true Cancel:false PlayerResult:[{ID:0 Name:Carol Reveals:71 Flags:0 Left:false}]} previousResult={GameID:mine - 1 Won:false Cancel:true PlayerResult:[{ID:0 Name:Alice Reveals:0 Flags:0 Left:true} {ID:1 Name:Bob Reveals:0 Flags:1 Left:true}]}
+    a2_observe_test.go:184: OBSERVE routed input={PlayerID:0 SessionID:3 Action:0 X:4 Y:4}
+    a2_observe_test.go:219: OBSERVE lost result={GameID:mine - 3 Won:false Cancel:false PlayerResult:[{ID:0 Name:Carol Reveals:46 Flags:0 Left:false}]} previousWon={GameID:mine - 2 Won:true Cancel:false PlayerResult:[{ID:0 Name:Carol Reveals:71 Flags:0 Left:false}]}
+    a2_observe_test.go:224: OBSERVE after three stored matches: next lobby accepts Dave id=0
+    a2_observe_test.go:32: PRODUCTION LOGS
+        2026/11/14 02:22:39 minesweeper: lobby open
+        2026/11/14 02:22:39 hub started
+        2026/11/14 02:22:39 hub: registered (id=0 name=Alice total=1)
+        2026/11/14 02:22:39 hub: registered (id=1 name=Bob total=2)
+        2026/11/14 02:22:39 minesweeper: starting mode=1 diff=easy players=2
+        2026/11/14 02:22:39 minesweeper: board 9x9 mines=10
+        2026/11/14 02:22:39 hub: unregistered (id=0 total=1)
+        2026/11/14 02:22:39 minesweeper: player 0 left
+        2026/11/14 02:22:39 hub: registered (id=0 name=Carol total=2)
+        2026/11/14 02:22:39 hub: unregistered (id=1 total=1)
+        2026/11/14 02:22:39 minesweeper: player 1 left
+        2026/11/14 02:22:39 游戏已结束 对局记录为:mine - 1
+        2026/11/14 02:22:39 minesweeper: 保存了比赛结果id = mine - 1 total = 1
+        2026/11/14 02:22:39 minesweeper: restarting
+        2026/11/14 02:22:39 minesweeper: lobby open
+        2026/11/14 02:22:39 hub: client 0 rejoin lobby
+        2026/11/14 02:22:39 minesweeper: starting mode=1 diff=easy players=1
+        2026/11/14 02:22:39 minesweeper: board 9x9 mines=10
+        2026/11/14 02:22:39 minesweeper: board cleared!
+        2026/11/14 02:22:44 minesweeper: 保存了比赛结果id = mine - 2 total = 2
+        2026/11/14 02:22:44 minesweeper: restarting
+        2026/11/14 02:22:44 minesweeper: lobby open
+        2026/11/14 02:22:44 hub: client 0 rejoin lobby
+        2026/11/14 02:22:44 minesweeper: starting mode=1 diff=easy players=1
+        2026/11/14 02:22:44 minesweeper: board 9x9 mines=10
+        2026/11/14 02:22:44 minesweeper: player 0 hit a mine at (0,1)
+        2026/11/14 02:22:47 minesweeper: 保存了比赛结果id = mine - 3 total = 3
+        2026/11/14 02:22:47 minesweeper: restarting
+        2026/11/14 02:22:47 minesweeper: lobby open
+        2026/11/14 02:22:47 hub: unregistered (id=0 total=0)
+        2026/11/14 02:22:47 hub: registered (id=0 name=Dave total=1)
+        2026/11/14 02:22:47 hub: unregistered (id=0 total=0)
+--- PASS: TestObserveA2NetworkLifecycle (8.07s)
+PASS
+ok  	github.com/siyad01/multiplayer-terminal-games/cmd/mineserver	8.939s
+Exit code: 0

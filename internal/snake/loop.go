@@ -10,21 +10,23 @@ import (
 	"github.com/siyad01/multiplayer-terminal-games/internal/protocol"
 )
 
-
 type InputMsg struct {
 	PlayerID uint8
-	Dir protocol.Direction
+	Dir      protocol.Direction
 }
 
 type JoinMsg struct {
-	PlayerID uint8
-	Name string
+	PlayerID   uint8
+	SessionID  uint64
+	Name       string
 	ResultChan chan bool
 }
 
 type LeaveMsg struct {
-	PlayerID uint8
+	PlayerID  uint8
+	SessionID uint64
 }
+
 const (
 	BoardWidth         = 45
 	BoardHeight        = 20
@@ -33,7 +35,10 @@ const (
 	MinRaceSeconds     = 120
 )
 
-type StartMsg   struct{ PlayerID uint8 }
+type StartMsg struct {
+	PlayerID  uint8
+	SessionID uint64
+}
 type SetTimeMsg struct {
 	PlayerID uint8
 	Seconds  uint16
@@ -42,16 +47,17 @@ type SetModeMsg struct {
 	PlayerID uint8
 	Mode     protocol.GameMode
 }
+
 func Loop(
-	inputCh     <-chan InputMsg,
-	joinCh      <-chan JoinMsg,
-	leaveCh     <-chan LeaveMsg,
-	startCh     <-chan StartMsg,
-	setTimeCh   <-chan SetTimeMsg,
-	setModeCh   <-chan SetModeMsg,
-	stopCh      <-chan struct{},
+	inputCh <-chan InputMsg,
+	joinCh <-chan JoinMsg,
+	leaveCh <-chan LeaveMsg,
+	startCh <-chan StartMsg,
+	setTimeCh <-chan SetTimeMsg,
+	setModeCh <-chan SetModeMsg,
+	stopCh <-chan struct{},
 	broadcastCh chan<- []byte,
-	gameOverCh  chan<- uint8,
+	gameOverCh chan<- uint8,
 ) {
 	survivors := map[uint8]string{}
 	for {
@@ -67,37 +73,44 @@ func Loop(
 }
 
 func runOnce(
-	inputCh     <-chan InputMsg,
-	joinCh      <-chan JoinMsg,
-	leaveCh     <-chan LeaveMsg,
-	startCh     <-chan StartMsg,
-	setTimeCh   <-chan SetTimeMsg,
-	setModeCh   <-chan SetModeMsg,
-	stopCh      <-chan struct{},
+	inputCh <-chan InputMsg,
+	joinCh <-chan JoinMsg,
+	leaveCh <-chan LeaveMsg,
+	startCh <-chan StartMsg,
+	setTimeCh <-chan SetTimeMsg,
+	setModeCh <-chan SetModeMsg,
+	stopCh <-chan struct{},
 	broadcastCh chan<- []byte,
-	gameOverCh  chan<- uint8,
-	survivors   map[uint8]string,
+	gameOverCh chan<- uint8,
+	survivors map[uint8]string,
 ) bool {
 	log.Println("game loop: lobby open")
 
 	lobbyPlayers := make(map[uint8]string)
-	lobbyIDs     := []uint8{}
-	var hostID    uint8
-	hasHost       := false
-	gameMode      := protocol.ModeSinglePlayer
-	raceDuration  := uint16(DefaultRaceSeconds)
+	lobbyIDs := []uint8{}
+	var hostID uint8
+	hasHost := false
+	gameMode := protocol.ModeSinglePlayer
+	raceDuration := uint16(DefaultRaceSeconds)
 
 	broadcast := func(msg []byte) {
-		select { case broadcastCh <- msg: default: }
+		select {
+		case broadcastCh <- msg:
+		default:
+		}
 	}
 
 	addToLobby := func(playerID uint8, name string) bool {
-		if len(lobbyPlayers) >= protocol.MaxPlayers { return false }
-		if _, exists := lobbyPlayers[playerID]; exists { return true }
+		if len(lobbyPlayers) >= protocol.MaxPlayers {
+			return false
+		}
+		if _, exists := lobbyPlayers[playerID]; exists {
+			return true
+		}
 		lobbyPlayers[playerID] = name
 		lobbyIDs = append(lobbyIDs, playerID)
 		if !hasHost {
-			hostID  = playerID
+			hostID = playerID
 			hasHost = true
 			log.Printf("game loop: player %d (%s) is host", playerID, name)
 		}
@@ -105,16 +118,18 @@ func runOnce(
 	}
 
 	broadcastLobby := func() {
-		ids   := make([]uint8, 0, len(lobbyIDs))
+		ids := make([]uint8, 0, len(lobbyIDs))
 		names := make([]string, 0, len(lobbyIDs))
 		for _, id := range lobbyIDs {
 			if name, ok := lobbyPlayers[id]; ok {
-				ids   = append(ids, id)
+				ids = append(ids, id)
 				names = append(names, name)
 			}
 		}
 		hid := uint8(0xFF)
-		if hasHost { hid = hostID }
+		if hasHost {
+			hid = hostID
+		}
 		broadcast(protocol.EncodeLobbyFull(hid, ids, names, raceDuration, gameMode))
 	}
 
@@ -122,8 +137,10 @@ func runOnce(
 		addToLobby(id, name)
 		log.Printf("game loop: survivor %d (%s) re-entered lobby", id, name)
 	}
-	for k := range survivors { delete(survivors, k) }
-	if len(lobbyPlayers) > 0 { 
+	for k := range survivors {
+		delete(survivors, k)
+	}
+	if len(lobbyPlayers) > 0 {
 		broadcastLobby()
 		broadcast(protocol.EncodeGameMode(gameMode))
 	}
@@ -160,17 +177,25 @@ func runOnce(
 			broadcastLobby()
 
 		case msg := <-setModeCh:
-			if !hasHost || msg.PlayerID != hostID { continue }
+			if !hasHost || msg.PlayerID != hostID {
+				continue
+			}
 			gameMode = msg.Mode
 			log.Printf("game loop: mode set to %d", gameMode)
 			broadcastLobby()
 
 		case msg := <-setTimeCh:
-			if !hasHost || msg.PlayerID != hostID { continue }
+			if !hasHost || msg.PlayerID != hostID {
+				continue
+			}
 			// Only relevant for Score Race mode
 			sec := msg.Seconds
-			if sec < MinRaceSeconds { sec = MinRaceSeconds }
-			if sec > 3600           { sec = 3600 }
+			if sec < MinRaceSeconds {
+				sec = MinRaceSeconds
+			}
+			if sec > 3600 {
+				sec = 3600
+			}
 			raceDuration = sec
 			log.Printf("game loop: race duration set to %ds", raceDuration)
 			broadcastLobby()
@@ -180,7 +205,9 @@ func runOnce(
 				log.Printf("game loop: player %d not host", msg.PlayerID)
 				continue
 			}
-			if len(lobbyPlayers) == 0 { continue }
+			if len(lobbyPlayers) == 0 {
+				continue
+			}
 			log.Printf("game loop: starting — mode=%d players=%d",
 				gameMode, len(lobbyPlayers))
 			goto startGame
@@ -232,15 +259,22 @@ startGame:
 					game.Board(), game.Scores()))
 				done := handleTickResult(result, game, gameMode,
 					broadcast, gameOverCh, survivors)
-				if done { return false }
+				if done {
+					return false
+				}
 
 			case <-secondTicker.C:
-				if secondsLeft > 0 { secondsLeft-- }
+				if secondsLeft > 0 {
+					secondsLeft--
+				}
 				broadcast(protocol.EncodeTimerUpdate(secondsLeft))
 				if secondsLeft == 0 {
 					winner := highestScoreWinner(game)
 					log.Printf("game loop: time up, winner %d", winner)
-					select { case gameOverCh <- winner: default: }
+					select {
+					case gameOverCh <- winner:
+					default:
+					}
 					broadcast(protocol.EncodeGameOver(winner))
 					time.Sleep(3 * time.Second)
 					drainChannels(joinCh, leaveCh, startCh, setTimeCh, inputCh)
@@ -272,7 +306,10 @@ startGame:
 				case TickAllDead:
 					winner := game.Winner()
 					log.Printf("game loop: all dead, winner %d", winner)
-					select { case gameOverCh <- winner: default: }
+					select {
+					case gameOverCh <- winner:
+					default:
+					}
 					broadcast(protocol.EncodeGameOver(winner))
 					for _, p := range game.Players {
 						if p.Status != StatusAlive {
@@ -294,7 +331,10 @@ startGame:
 					winner := game.Winner()
 					log.Printf("game loop: all levels done, winner %d", winner)
 					broadcast(protocol.EncodeGameComplete(winner))
-					select { case gameOverCh <- winner: default: }
+					select {
+					case gameOverCh <- winner:
+					default:
+					}
 					time.Sleep(5 * time.Second)
 					drainChannels(joinCh, leaveCh, startCh, setTimeCh, inputCh)
 					return false
@@ -327,10 +367,15 @@ func handleTickResult(
 	switch result {
 	case TickAllDead:
 		winner := game.Winner()
-		select { case gameOverCh <- winner: default: }
+		select {
+		case gameOverCh <- winner:
+		default:
+		}
 		broadcast(protocol.EncodeGameOver(winner))
 		for _, p := range game.Players {
-			if p.Status != StatusAlive { delete(survivors, p.ID) }
+			if p.Status != StatusAlive {
+				delete(survivors, p.ID)
+			}
 		}
 		return true
 	}
@@ -341,29 +386,35 @@ func waitForNext(startCh <-chan StartMsg, stopCh <-chan struct{}, hostID uint8) 
 	timeout := time.After(5 * time.Second)
 	for {
 		select {
-		case <-timeout: return
+		case <-timeout:
+			return
 		case msg := <-startCh:
-			if msg.PlayerID == hostID { return }
-		case <-stopCh: return
+			if msg.PlayerID == hostID {
+				return
+			}
+		case <-stopCh:
+			return
 		}
 	}
 }
 
 func drainChannels(
-	joinCh    <-chan JoinMsg,
-	leaveCh   <-chan LeaveMsg,
-	startCh   <-chan StartMsg,
+	joinCh <-chan JoinMsg,
+	leaveCh <-chan LeaveMsg,
+	startCh <-chan StartMsg,
 	setTimeCh <-chan SetTimeMsg,
-	inputCh   <-chan InputMsg,
+	inputCh <-chan InputMsg,
 ) {
 	for {
 		select {
-		case msg := <-joinCh: msg.ResultChan <- false
+		case msg := <-joinCh:
+			msg.ResultChan <- false
 		case <-leaveCh:
 		case <-startCh:
 		case <-setTimeCh:
 		case <-inputCh:
-		default: return
+		default:
+			return
 		}
 	}
 }
@@ -371,8 +422,12 @@ func drainChannels(
 func highestScoreWinner(game *Game) uint8 {
 	var best *Player
 	for _, p := range game.Players {
-		if best == nil || p.Score > best.Score { best = p }
+		if best == nil || p.Score > best.Score {
+			best = p
+		}
 	}
-	if best == nil { return 0xFF }
+	if best == nil {
+		return 0xFF
+	}
 	return best.ID
 }

@@ -1,0 +1,57 @@
+package server_test
+
+import (
+	"github.com/siyad01/multiplayer-terminal-games/internal/snake"
+	"testing"
+	"time"
+)
+
+// Diagnostic observations only, not learner-owned business assertions.
+func TestObserveA2HubPaths(t *testing.T) {
+	h, broadcasts, _, joins, leaves, _, _, _ := newTestHub()
+	go h.Run()
+	nextJoin := func() snake.JoinMsg {
+		t.Helper()
+		select {
+		case j := <-joins:
+			j.ResultChan <- true
+			return j
+		case <-time.After(3 * time.Second):
+			t.Fatal("diagnostic join timeout")
+			return snake.JoinMsg{}
+		}
+	}
+	nextLeave := func() snake.LeaveMsg {
+		t.Helper()
+		select {
+		case l := <-leaves:
+			return l
+		case <-time.After(3 * time.Second):
+			t.Fatal("diagnostic leave timeout")
+			return snake.LeaveMsg{}
+		}
+	}
+	alice := h.NewClient("alice")
+	h.Register(alice)
+	t.Logf("OBSERVE initial join=%+v", nextJoin())
+	h.Unregister(alice)
+	t.Logf("OBSERVE initial leave=%+v", nextLeave())
+	carol := h.NewClient("carol")
+	h.Register(carol)
+	t.Logf("OBSERVE reused join=%+v oldSession=%d newSession=%d", nextJoin(), alice.SessionID(), carol.SessionID())
+	// Same channel FIFO: the first forwarded rejoin identifies whether the stale
+	// request got through. A current-client request provides an explicit fence.
+	h.Rejoin(alice)
+	h.Rejoin(carol)
+	t.Logf("OBSERVE first forwarded rejoin after stale/current pair=%+v", nextJoin())
+	for i := 0; i < 258; i++ {
+		broadcasts <- []byte{0xfe}
+	}
+	t.Logf("OBSERVE slow-client leave=%+v expectedConnectionID=%d expectedSession=%d", nextLeave(), carol.ID(), carol.SessionID())
+	h.Unregister(carol)
+	dave := h.NewClient("dave")
+	h.Register(dave)
+	t.Logf("OBSERVE lobby usable after slow drop: join=%+v", nextJoin())
+	h.Unregister(dave)
+	t.Logf("OBSERVE final leave=%+v", nextLeave())
+}

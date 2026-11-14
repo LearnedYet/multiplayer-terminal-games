@@ -1,0 +1,29 @@
+=== RUN   TestHubRegisterAssignsLowestID
+2026/11/13 22:54:52 hub started
+2026/11/13 22:54:52 hub: registered (id=0 name=alice total=1)
+2026/11/13 22:54:52 hub: registered (id=1 name=bob total=2)
+--- PASS: TestHubRegisterAssignsLowestID (0.05s)
+=== RUN   TestHubIDRecycling
+2026/11/13 22:54:52 hub started
+2026/11/13 22:54:52 hub: registered (id=0 name=alice total=1)
+2026/11/13 22:54:52 hub: unregistered (id=0 total=0)
+2026/11/13 22:54:52 hub: registered (id=0 name=bob total=1)
+--- PASS: TestHubIDRecycling (0.09s)
+=== RUN   TestHubBroadcastReachesAllClients
+2026/11/13 22:54:52 hub started
+2026/11/13 22:54:52 hub: registered (id=0 name=alice total=1)
+2026/11/13 22:54:52 hub: registered (id=1 name=bob total=2)
+--- PASS: TestHubBroadcastReachesAllClients (0.12s)
+=== RUN   TestHubMaxPlayers
+2026/11/13 22:54:52 hub started
+2026/11/13 22:54:52 hub: registered (id=0 name=p0 total=1)
+2026/11/13 22:54:52 hub: registered (id=1 name=p1 total=2)
+2026/11/13 22:54:52 hub: registered (id=2 name=p2 total=3)
+2026/11/13 22:54:52 hub: registered (id=3 name=p3 total=4)
+2026/11/13 22:54:52 hub: rejected — server full
+--- PASS: TestHubMaxPlayers (0.10s)
+=== RUN   TestHubForwardSetModeSendsMessage
+--- PASS: TestHubForwardSetModeSendsMessage (0.00s)
+PASS
+ok  	github.com/siyad01/multiplayer-terminal-games/internal/server	0.956s
+Exit code: 0

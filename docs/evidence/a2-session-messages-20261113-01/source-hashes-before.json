@@ -1,0 +1,22 @@
+[
+  {
+    "Path": "C:\\Dev\\Go\\A\\internal\\server\\hub.go",
+    "Hash": "D06AC4A665DF351FDE98EFDE9F6861FFC2D53C1919AD570A08073DBDD9CA3243"
+  },
+  {
+    "Path": "C:\\Dev\\Go\\A\\internal\\snake\\loop.go",
+    "Hash": "360C0CA6E0409918381C67C5516E8B9E16C24CD912DE3BF15171400882FA089A"
+  },
+  {
+    "Path": "C:\\Dev\\Go\\A\\internal\\minesweeper\\loop.go",
+    "Hash": "0134CD4BDD3D1B73F48F7E1FC42246508BA02917EEB7F047A48E48B84987DE91"
+  },
+  {
+    "Path": "C:\\Dev\\Go\\A\\cmd\\mineserver\\main.go",
+    "Hash": "532462D5C7D0C08D9D415D0F2C2B756C49ACC61090DAC7C99E7CFCD290ADD880"
+  },
+  {
+    "Path": "C:\\Dev\\Go\\A\\cmd\\mineserver\\main_test.go",
+    "Hash": "C7561F0E6000FBF5A13FB163EDF663E8FEA1CDD60E1E8067629A9313DE3E1FDE"
+  }
+]

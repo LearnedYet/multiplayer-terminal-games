@@ -4,16 +4,18 @@ package server
 
 import (
 	"log"
+	"sync/atomic"
 
 	"github.com/siyad01/multiplayer-terminal-games/internal/protocol"
 	"github.com/siyad01/multiplayer-terminal-games/internal/snake"
 )
 
 type Client struct {
-	id   uint8
-	name string
-	send chan []byte
-	hub  *Hub
+	id        uint8
+	name      string
+	send      chan []byte
+	hub       *Hub
+	sessionID uint64
 }
 
 type registerMsg struct{ client *Client }
@@ -21,10 +23,11 @@ type unregisterMsg struct{ client *Client }
 type rejoinMsg struct{ client *Client } // play again — no new connection
 
 type Hub struct {
-	clients    map[uint8]*Client
-	register   chan registerMsg
-	unregister chan unregisterMsg
-	rejoin     chan rejoinMsg
+	clients        map[uint8]*Client
+	sessionCounter atomic.Uint64
+	register       chan registerMsg
+	unregister     chan unregisterMsg
+	rejoin         chan rejoinMsg
 
 	broadcastCh <-chan []byte
 	inputCh     chan<- snake.InputMsg
@@ -103,6 +106,7 @@ func (h *Hub) Run() {
 			resultCh := make(chan bool, 1)
 			h.joinCh <- snake.JoinMsg{
 				PlayerID:   c.id,
+				SessionID:  c.sessionID,
 				Name:       c.name,
 				ResultChan: resultCh,
 			}
@@ -117,14 +121,18 @@ func (h *Hub) Run() {
 		case msg := <-h.rejoin:
 			// Same client, same connection — just tell loop to add them to lobby
 			c := msg.client
-			if _, exists := h.clients[c.id]; !exists {
-				// Client was already unregistered — ignore
+			// TODO：从 h.clients 查询当前编号对应的 Client，以及是否存在
+			// TODO：不存在，或者查到的 Client 不是 c，就 continue
+			existing, ok := h.clients[c.id]
+			if !ok || existing != c {
 				continue
 			}
+
 			log.Printf("hub: client %d rejoin lobby", c.id)
 			resultCh := make(chan bool, 1)
 			h.joinCh <- snake.JoinMsg{
 				PlayerID:   c.id,
+				SessionID:  c.sessionID,
 				Name:       c.name,
 				ResultChan: resultCh,
 			}
@@ -147,7 +155,10 @@ func (h *Hub) Run() {
 				close(c.send)
 			}()
 			log.Printf("hub: unregistered (id=%d total=%d)", c.id, len(h.clients))
-			h.leaveCh <- snake.LeaveMsg{PlayerID: c.id}
+			h.leaveCh <- snake.LeaveMsg{
+				PlayerID:  c.id,
+				SessionID: c.sessionID,
+			}
 
 		case data := <-h.broadcastCh:
 			for id, c := range h.clients {
@@ -157,7 +168,13 @@ func (h *Hub) Run() {
 					func() {
 						defer recover()
 						close(c.send)
+
 					}()
+
+					h.leaveCh <- snake.LeaveMsg{
+						PlayerID:  c.id,
+						SessionID: c.sessionID,
+					}
 				}
 			}
 		}
@@ -170,10 +187,11 @@ func (h *Hub) Rejoin(c *Client)     { h.rejoin <- rejoinMsg{client: c} }
 
 func (h *Hub) NewClient(name string) *Client {
 	return &Client{
-		id:   0xFF,
-		name: name,
-		send: make(chan []byte, 256),
-		hub:  h,
+		id:        0xFF,
+		sessionID: h.sessionCounter.Add(1),
+		name:      name,
+		send:      make(chan []byte, 256),
+		hub:       h,
 	}
 }
 
@@ -184,9 +202,10 @@ func (h *Hub) ForwardInput(playerID uint8, dir protocol.Direction) {
 	}
 }
 
-func (h *Hub) ForwardStart(playerID uint8) {
+func (h *Hub) ForwardStart(playerID uint8, sessionID uint64) {
 	select {
-	case h.startCh <- snake.StartMsg{PlayerID: playerID}:
+	case h.startCh <- snake.StartMsg{PlayerID: playerID,
+		SessionID: sessionID}:
 	default:
 	}
 }
@@ -207,4 +226,5 @@ func (h *Hub) ForwardSetMode(playerID uint8, mode protocol.GameMode) {
 }
 
 func (c *Client) ID() uint8               { return c.id }
+func (c *Client) SessionID() uint64       { return c.sessionID }
 func (c *Client) SendChan() <-chan []byte { return c.send }

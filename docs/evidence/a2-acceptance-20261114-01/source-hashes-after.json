@@ -1,0 +1,86 @@
+[
+  {
+    "Path": "C:\\Dev\\Go\\A\\cmd\\server\\main.go",
+    "Hash": "5C4C49DADC779693E8C3B8E1D0168154B74E9DA219C4CC44FA67B19A6D33B5F0"
+  },
+  {
+    "Path": "C:\\Dev\\Go\\A\\internal\\snake\\loop.go",
+    "Hash": "34094F6BD12AFC0873C987786059818F4BE5628A465D26AD8CC3DB5DF2AA282E"
+  },
+  {
+    "Path": "C:\\Dev\\Go\\A\\internal\\snake\\game_test.go",
+    "Hash": "B1387908B7D972F03264D912E0F765899C1E8183EFB6E7C6B95C287EFD94BB9F"
+  },
+  {
+    "Path": "C:\\Dev\\Go\\A\\internal\\snake\\game.go",
+    "Hash": "80789E26DAB54446D520E672B479A0C48F9E4126AE0ABE5C2FB46F35D7ED8C37"
+  },
+  {
+    "Path": "C:\\Dev\\Go\\A\\cmd\\mineserver\\main_test.go",
+    "Hash": "C7561F0E6000FBF5A13FB163EDF663E8FEA1CDD60E1E8067629A9313DE3E1FDE"
+  },
+  {
+    "Path": "C:\\Dev\\Go\\A\\cmd\\mineserver\\main.go",
+    "Hash": "A270B0AEF675042C85C5402A35DB1B30F5FA997EADFC77A7ACD68A9243D5BC54"
+  },
+  {
+    "Path": "C:\\Dev\\Go\\A\\internal\\server\\hub_test.go",
+    "Hash": "E99A69D8BBC9C015F03737299787255AAF997A0BCADFE64EFE5271460CB9C02C"
+  },
+  {
+    "Path": "C:\\Dev\\Go\\A\\internal\\server\\hub.go",
+    "Hash": "6AF47A8451A3474953511002D01A7FDBEADD4E788B4C1640739E15DE1AF6A68B"
+  },
+  {
+    "Path": "C:\\Dev\\Go\\A\\internal\\server\\handler.go",
+    "Hash": "9900309A3CD1F5F5F92234B6E20EF9926B761C7AC575F9522A47DF0D2B6C009B"
+  },
+  {
+    "Path": "C:\\Dev\\Go\\A\\internal\\server\\client.go",
+    "Hash": "2FED1C253FA0B6C33796B10E9B4A183ECB1460656B2A1D5141F2A18A739D67D4"
+  },
+  {
+    "Path": "C:\\Dev\\Go\\A\\internal\\protocol\\mine_test.go",
+    "Hash": "746672C52D8E60784E205878FD26EF6298B961040599DAE0122C83C18CAB4E19"
+  },
+  {
+    "Path": "C:\\Dev\\Go\\A\\internal\\protocol\\message_test.go",
+    "Hash": "A62F290F6611F7161F5B510D0DB18876ED15FA4DDE5E5B73A42FFD373C3DFE6C"
+  },
+  {
+    "Path": "C:\\Dev\\Go\\A\\internal\\protocol\\messages.go",
+    "Hash": "88C744245A3AEFE6E2BEDFA9EAFD9B52F37F93879070ED1FB253A2FB60743DF4"
+  },
+  {
+    "Path": "C:\\Dev\\Go\\A\\cmd\\client\\main.go",
+    "Hash": "BA1533DE7C6932C9BA3BF162102D63B0D2E759A6F012FF83FF2409815244C621"
+  },
+  {
+    "Path": "C:\\Dev\\Go\\A\\internal\\minesweeper\\render.go",
+    "Hash": "C9C05A10927E62D338FC73F5592868CAFE9F3A1F5A4B79EF23F1142ECE71E02B"
+  },
+  {
+    "Path": "C:\\Dev\\Go\\A\\internal\\minesweeper\\loop_test.go",
+    "Hash": "528865129C193B802E785D725D8CE262449BC4888A98555B96639B93F0838B79"
+  },
+  {
+    "Path": "C:\\Dev\\Go\\A\\internal\\minesweeper\\loop.go",
+    "Hash": "A18B704F6585AC299CC4398698E64B49AF90A5548AD266A6B1FC94D3BA27FA03"
+  },
+  {
+    "Path": "C:\\Dev\\Go\\A\\internal\\minesweeper\\game_test.go",
+    "Hash": "026ED9FC11401C51D87D3F905E537FAE51265CBD289434F67D3B523261A57CBB"
+  },
+  {
+    "Path": "C:\\Dev\\Go\\A\\internal\\minesweeper\\game.go",
+    "Hash": "5541689326207742F07994D7B957FDF4D1167B64C44F3B1F49E17E6E1FE215F4"
+  },
+  {
+    "Path": "C:\\Dev\\Go\\A\\internal\\client\\render.go",
+    "Hash": "266405EF25A0585442047C017E93C985119F8217E3F29DD56EDABBA366ECDA0B"
+  },
+  {
+    "Path": "C:\\Dev\\Go\\A\\internal\\client\\input.go",
+    "Hash": "DB50B941F7BD1A480DD063D0C05B3A94602B73EA085AF63DA0CB9724E82DA3AD"
+  }
+]

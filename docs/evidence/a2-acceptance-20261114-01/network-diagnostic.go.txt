@@ -1,0 +1,225 @@
+package main
+
+import (
+	"bytes"
+	"github.com/gorilla/websocket"
+	"github.com/siyad01/multiplayer-terminal-games/internal/minesweeper"
+	"github.com/siyad01/multiplayer-terminal-games/internal/protocol"
+	"github.com/siyad01/multiplayer-terminal-games/internal/server"
+	"github.com/siyad01/multiplayer-terminal-games/internal/snake"
+	"log"
+	"net/http/httptest"
+	"strings"
+	"sync"
+	"testing"
+	"time"
+)
+
+type a2Log struct {
+	mu  sync.Mutex
+	buf bytes.Buffer
+}
+
+func (w *a2Log) Write(p []byte) (int, error) { w.mu.Lock(); defer w.mu.Unlock(); return w.buf.Write(p) }
+func (w *a2Log) String() string              { w.mu.Lock(); defer w.mu.Unlock(); return w.buf.String() }
+
+// Loop and WebSocket observations only. A temporary factory hook exposes game
+// pointers for choosing cells; it does not change board generation or rules.
+func TestObserveA2NetworkLifecycle(t *testing.T) {
+	logs := &a2Log{}
+	oldLog := log.Writer()
+	log.SetOutput(logs)
+	defer func() { log.SetOutput(oldLog); t.Logf("PRODUCTION LOGS\n%s", logs.String()) }()
+	waitLog := func(s string) {
+		t.Helper()
+		deadline := time.NewTimer(10 * time.Second)
+		defer deadline.Stop()
+		tick := time.NewTicker(10 * time.Millisecond)
+		defer tick.Stop()
+		for {
+			if strings.Contains(logs.String(), s) {
+				return
+			}
+			select {
+			case <-tick.C:
+			case <-deadline.C:
+				t.Fatalf("diagnostic log timeout: %s", s)
+			}
+		}
+	}
+	broadcast := make(chan []byte, 64)
+	raw := make(chan minesweeper.MineInputMsg, 32)
+	mine := make(chan minesweeper.MineInputMsg)
+	seen := make(chan minesweeper.MineInputMsg, 32)
+	join := make(chan snake.JoinMsg, 4)
+	leave := make(chan snake.LeaveMsg, 4)
+	start := make(chan snake.StartMsg, 4)
+	mode := make(chan minesweeper.SetModeMsg, 4)
+	stop := make(chan struct{})
+	over := make(chan uint8, 4)
+	loopDone := make(chan struct{})
+	go func() { defer close(loopDone); minesweeper.Loop(mine, join, leave, start, mode, stop, broadcast, over) }()
+	go func() {
+		for {
+			select {
+			case m := <-raw:
+				select {
+				case mine <- m:
+					seen <- m
+				case <-stop:
+					return
+				}
+			case <-stop:
+				return
+			}
+		}
+	}()
+	hub := server.NewHub(broadcast, make(chan snake.InputMsg, 1), join, leave, start, make(chan snake.SetTimeMsg, 1), make(chan snake.SetModeMsg, 1))
+	go hub.Run()
+	ts := httptest.NewServer(mineWSHandler(hub, raw, mode))
+	defer ts.Close()
+	var connections []*websocket.Conn
+	defer func() {
+		for _, c := range connections {
+			c.Close()
+		}
+		close(stop)
+		select {
+		case <-loopDone:
+		case <-time.After(10 * time.Second):
+			t.Error("diagnostic loop cleanup timeout")
+		}
+	}()
+	read := func(c *websocket.Conn, want protocol.MsgType) []byte {
+		t.Helper()
+		c.SetReadDeadline(time.Now().Add(10 * time.Second))
+		for {
+			_, b, e := c.ReadMessage()
+			if e != nil {
+				t.Fatalf("diagnostic read type %d: %v", want, e)
+			}
+			if len(b) > 0 && protocol.MsgType(b[0]) == want {
+				return b
+			}
+		}
+	}
+	send := func(c *websocket.Conn, b []byte) {
+		t.Helper()
+		c.SetWriteDeadline(time.Now().Add(3 * time.Second))
+		if e := c.WriteMessage(websocket.BinaryMessage, b); e != nil {
+			t.Fatal(e)
+		}
+	}
+	connect := func(name string) (*websocket.Conn, uint8) {
+		t.Helper()
+		c, _, e := websocket.DefaultDialer.Dial("ws"+strings.TrimPrefix(ts.URL, "http")+"/ws?name="+name, nil)
+		if e != nil {
+			t.Fatal(e)
+		}
+		connections = append(connections, c)
+		w := read(c, protocol.MsgWelcome)
+		if len(w) < 2 {
+			t.Fatal("diagnostic short welcome")
+		}
+		return c, w[1]
+	}
+	nextGame := func() *minesweeper.Game {
+		t.Helper()
+		select {
+		case g := <-minesweeper.A2DiagnosticGames:
+			return g
+		case <-time.After(3 * time.Second):
+			t.Fatal("diagnostic factory timeout")
+			return nil
+		}
+	}
+	waitSeen := func() {
+		t.Helper()
+		select {
+		case m := <-seen:
+			t.Logf("OBSERVE routed input=%+v", m)
+		case <-time.After(3 * time.Second):
+			t.Fatal("diagnostic input routing timeout")
+		}
+	}
+	alice, aid := connect("Alice")
+	read(alice, protocol.MsgLobbyState)
+	bob, bid := connect("Bob")
+	read(bob, protocol.MsgLobbyState)
+	read(alice, protocol.MsgLobbyState)
+	send(alice, protocol.EncodeSetMineMode(uint8(minesweeper.ModeCooperative), "easy"))
+	read(alice, protocol.MsgLobbyState)
+	send(alice, protocol.EncodeStartGame())
+	read(alice, protocol.MsgMineState)
+	read(bob, protocol.MsgMineState)
+	g1 := nextGame()
+	alice.Close()
+	waitLog("hub: unregistered (id=0")
+	carol, cid := connect("Carol")
+	rejection := read(carol, protocol.MsgError)
+	t.Logf("OBSERVE actual reused IDs alice=%d bob=%d carol=%d rejection=%q", aid, bid, cid, rejection[1:])
+	send(carol, []byte{byte(protocol.MsgMineFlag), 0, 0})
+	waitSeen()
+	send(bob, []byte{byte(protocol.MsgMineFlag), 1, 0})
+	board := read(bob, protocol.MsgMineState)
+	waitSeen()
+	_, _, flags, scores, cells, e := protocol.ParseMineState(board)
+	if e != nil {
+		t.Fatal(e)
+	}
+	t.Logf("OBSERVE after rejected/new and valid inputs flagsLeft=%d scores=%v target0=%d target1=%d", flags, scores, cells[0], cells[1])
+	bob.Close()
+	waitLog("total = 1")
+	t.Logf("OBSERVE first canceled result=%+v", g1.SnapshotResult())
+	startNext := func() *minesweeper.Game {
+		send(carol, protocol.EncodePlayAgain())
+		read(carol, protocol.MsgLobbyState)
+		send(carol, protocol.EncodeSetMineMode(uint8(minesweeper.ModeCooperative), "easy"))
+		read(carol, protocol.MsgLobbyState)
+		send(carol, protocol.EncodeStartGame())
+		read(carol, protocol.MsgMineState)
+		g := nextGame()
+		send(carol, []byte{byte(protocol.MsgMineReveal), 4, 4})
+		read(carol, protocol.MsgMineState)
+		waitSeen()
+		return g
+	}
+	g2 := startNext()
+	for !g2.Over {
+		target := -1
+		for i, c := range g2.Cells {
+			if !c.IsMine && c.State == minesweeper.StateHidden {
+				target = i
+				break
+			}
+		}
+		if target < 0 {
+			t.Fatal("diagnostic cannot find next hidden safe cell")
+		}
+		send(carol, []byte{byte(protocol.MsgMineReveal), uint8(target % int(g2.Width)), uint8(target / int(g2.Width))})
+		read(carol, protocol.MsgMineState)
+		waitSeen()
+	}
+	read(carol, protocol.MsgMineWin)
+	waitLog("total = 2")
+	t.Logf("OBSERVE won result=%+v previousResult=%+v", g2.SnapshotResult(), g1.SnapshotResult())
+	// Drain routed observations for the next first-click synchronization.
+	for len(seen) > 0 {
+		<-seen
+	}
+	g3 := startNext()
+	for i, c := range g3.Cells {
+		if c.IsMine {
+			send(carol, []byte{byte(protocol.MsgMineReveal), uint8(i % int(g3.Width)), uint8(i / int(g3.Width))})
+			break
+		}
+	}
+	read(carol, protocol.MsgMineLose)
+	waitLog("total = 3")
+	t.Logf("OBSERVE lost result=%+v previousWon=%+v", g3.SnapshotResult(), g2.SnapshotResult())
+	carol.Close()
+	waitLog("hub: unregistered (id=0 total=0)")
+	dave, did := connect("Dave")
+	read(dave, protocol.MsgLobbyState)
+	t.Logf("OBSERVE after three stored matches: next lobby accepts Dave id=%d", did)
+}

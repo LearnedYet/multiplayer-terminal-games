@@ -352,6 +352,118 @@ go run ./cmd/client -name bob
 - 本次提交范围是自 d02f621 起的 A2 阶段进度、编号修复、项目约定及原始证据，不标记 A2 完成；固定名单及必要综合验收仍待后续。用户明确授权推送个人仓库 origin/main，已只读确认目标为 LearnedYet/multiplayer-terminal-games、远程 main 尚在原始基线 488dd313；将使用普通非强制推送，连同此前未推送的 A1 提交一并上传，不推送 upstream。实际提交/推送结果待 Git 命令回执核对，不预填成功；今天不再开始其他业务修改。
 - 暂存核对：首次全量 `git diff --cached --check` 将原始 source-diff.patch 内必需的补丁上下文空格识别为空白问题而退出 2，提交命令尚未执行。保留这份原始证据不修改；后续空白检查仅排除 `docs/evidence/a2-handoff-check-20261112-01/source-diff.patch`，仍检查其余源码、文档及证据，不调整全局 Git 空白规则。
 
+## A2 进度提交推送回执与换聊天交接（2026-11-13）
+
+- 编号修复验证后，AI 按用户明确指令提交三个扫雷源码/测试文件、本地约定及原始证据，共 87 文件，提交 `5e47ebf6571456f1833e628e2bec136aeaf1aefc`，标题 `feat: preserve minesweeper match results and assign sequential IDs`。阶段未完成状态及贡献归属写入提交正文；没有改许可证、依赖或 BASELINE。
+- `git push -u origin main` 退出 0，将个人仓库 LearnedYet/multiplayer-terminal-games 的 main 从 488dd31 快进到 5e47ebf，包含此前 d02f621；branch.main 改为跟踪 origin/main，未推送 upstream、未强推。随即 ls-remote 核对远程 main 与 HEAD 完全相同，工作区条目数 0。原回执存于 .git，换聊天时复制到[持久交接批次](evidence/a2-handoff-20261113-01/commit-and-push-receipt.log)。
+- 用户准备换聊天后，本轮再次读取共享规则、本地状态、Git refs 及回执，三个扫雷源码/测试文件与已验证批次 SHA256 一致，见[交接检查](evidence/a2-handoff-20261113-01/handoff-check.log)。没有重跑测试、重新访问远程、开启新业务或再次提交推送。新聊天应从固定开局名单的实际连接/ID 接纳路径调查开始，按原定 TODO 分工继续 A2。
+- 推送后的本次更新仅为 AGENTS、CURRENT_STATE、本文及独立交接回执批次，尚未提交；不能将文档未提交误判为有未验证核心代码，也不能沿用已经执行完的推送授权自动上传新任务。阶段综合验收、胜负结果完整链路联机及固定名单仍待后续，42 PASS 与构建结果沿用原始批次，未冒充本轮重测。
+
+## A2 固定开局名单接续调查（2026-11-13）
+
+- AI 只读核对项目及共享规则、状态、历史证据和真实源码。`git status --short` 显示 AGENTS、CURRENT_STATE、EVIDENCE 及 a2-handoff 回执目录；`git rev-parse HEAD origin/main` 两行均为 5e47ebf6571456f1833e628e2bec136aeaf1aefc；`git diff --exit-code HEAD -- cmd internal go.mod go.sum LICENSE` 无输出、退出 0。远程状态仅核对既有推送回执与本地 ref，本轮未联网、未执行测试或构建，42 PASS 仍归属此前编号修复批次。
+- 静态调用链：cmd/mineserver/main.go 的 mineWSHandler → Hub.Register → Hub.Run 分配编号并发送 JoinMsg → runOnce 的 GAME join；输入由独立 readPump 直接进入 mineCh。Hub 在加入回复 false 时只发送错误消息，不阻止后续输入；注销释放编号后 assignID 可复用，三个事件通道没有跨通道先后保证。存在旧玩家 leave 尚未消费、新连接输入以相同编号到达的可能路径，尚未运行复现，不能仅用 Left 或拒绝 join 回复证明安全。
+- 本轮只完成调查及本地文档记录，未改业务或测试源码。下一小步由用户填写 GAME join 拒绝逻辑，随后审查；连接接纳与输入放行仍需后续处理，A2 未完成，无提交、推送、共享文件修改。
+
+## A2 用户拒绝 GAME 中途加入并完成包回归（2026-11-13）
+
+- 用户按 TODO 保存 internal/minesweeper/loop.go 的 runOnce GAME join 分支：删除按模式中途 AddPlayer、接受回复和棋盘广播，只回复 false；大厅 join 与其余业务未改。AI 读取实际 diff，确认未返回退出本局，未代写业务或核心断言。
+- 批次 [a2-fixed-roster-join-20261113-01](evidence/a2-fixed-roster-join-20261113-01/) 保存用户 loop 快照、环境、测试原始输出及三个扫雷源码/测试前后 SHA256。Windows amd64 / Go 1.27.3，HEAD 5e47ebf，验证进程 GOWORK=off 后还原；执行 `go test -mod=readonly ./internal/minesweeper -count=1 -v -timeout=30s`：13 PASS、0 SKIP、0 FAIL、退出 0，源码哈希一致。现有用例未调用 runOnce，不将包通过记为中途加入或连接身份验收；本轮未执行全库、构建、Race 或联机。
+- 本步学习点是通过回复通道拒绝接纳，同时保留正在运行的对局。连接仍可发送输入、编号可复用的问题尚未解决；下一步先讨论服务端连接身份与拒绝即断开的取舍，重大方案确认后继续 TODO 带学。无提交、推送、依赖/许可证或共享文件修改。
+
+## A2 连接身份方案批准与第一步准备（2026-11-13）
+
+- 用户明确同意“增加服务端连接身份”的推荐方案，保留已有连接等待/再加入行为；不选择拒绝加入即断开的备选。核心业务及核心断言继续由用户按 TODO 小步实现，AI 调查、讲解、审查及验证，不将方案批准当作 AI 代写授权。
+- AI 静态核对 Hub.NewClient 由 HTTP 处理函数调用，后续才 Register 并启动读循环。第一步拟在 NewClient 固定身份，Hub 使用原子计数器支持并发创建连接；用本机 `go doc sync/atomic.Uint64`、`go doc sync/atomic.Uint64.Add` 核对零值及返回值含义，均正常退出。没有修改业务/测试源码或执行新测试、构建、联机；上一批 13 PASS 不证明尚未实现的连接身份方案。
+- 当前仅提供 hub.go 的字段、分配及读取方法 TODO，等待用户保存；后续沿相关内部消息传递身份，并在大厅/本局操作与离开路径匹配开局连接。客户端线协议、账号系统和跨进程持久性不在方案内，无提交或推送。
+
+## A2 用户保存连接身份分配与 server 包回归（2026-11-13）
+
+- 用户按 TODO 保存 internal/server/hub.go：Client 的 sessionID 为 uint64，Hub 的 sessionCounter 为 atomic.Uint64，NewClient 将 Add(1) 返回值保存到新连接，SessionID() 只返回已保存值。AI 读取实际 diff 与源码，确认计数器在 Hub 存续、分配在新连接创建时完成、getter 不再递增；未修改业务或核心断言。
+- 批次 [a2-session-allocation-20261113-01](evidence/a2-session-allocation-20261113-01/) 保留用户 hub 快照、环境、原始输出及 hub.go/hub_test.go 前后相同 SHA256。Windows amd64 / Go 1.27.3，HEAD 5e47ebf，验证进程 GOWORK=off 后还原；执行 `go test -mod=readonly ./internal/server -count=1 -v -timeout=30s`：5 PASS、0 SKIP、0 FAIL、退出 0。仅支持编译及既有 Hub 注册/编号复用/广播/容量/模式转发回归；测试未新增对 session 的断言，不认定已验证并发身份唯一性或完整连接隔离。未执行全库、构建、Race 或联机。
+- 下一步用户填写相关内部消息的 SessionID 字段及来源，批量处理直接的重复赋值；Start 消息的函数参数传递随后处理，最后再接入本局名单匹配与必要业务验证。无提交、推送、依赖/许可证或共享文件修改。
+
+## A2 消息身份传递草稿审查（2026-11-13，待补字段）
+
+- AI 读取用户实际 diff：MineInputMsg、扫雷 SetModeMsg 已声明 SessionID uint64；三类操作和模式消息使用 c.SessionID()，Hub register/rejoin 两处 JoinMsg 和 unregister 的 LeaveMsg 均使用 c.sessionID，未重新分配或读取客户端载荷。internal/snake/loop.go 实际保存的 JoinMsg、LeaveMsg 尚无 SessionID 字段，是当前明确缺项；AI 未代写字段或继续下一个依赖步骤。
+- 独立批次 [a2-session-messages-draft-20261113-01](evidence/a2-session-messages-draft-20261113-01/) 保存 Hub 与 Snake 消息定义快照、环境及四个相关源码前后相同 SHA256。Windows amd64 / Go 1.27.3，HEAD 5e47ebf，GOWORK=off 仅设于验证进程并还原；`go test -mod=readonly ./internal/server -count=1 -v -timeout=30s` 退出 1：hub.go 的两处 JoinMsg、单处 LeaveMsg 报 unknown field SessionID。编译失败，无用例进入 RUN，不记测试用例断言失败或通过。
+- 当前仅提示用户在 internal/snake/loop.go 的 JoinMsg、LeaveMsg 中补齐或保存字段，已有赋值不改。未执行其他包/全库测试、构建、Race 或联机；无源码代写、提交、推送、依赖/许可证或共享文件修改。
+
+## A2 用户补齐消息身份字段与相关四包回归（2026-11-13）
+
+- 用户保存 internal/snake/loop.go 中 JoinMsg、LeaveMsg 的 SessionID uint64，AI 读取实际文件确认此前缺项已补齐。该文件伴有整文件格式化；通过移除两个新字段后，将当前文件和 HEAD 分别送入 gofmt 并比较，结果相同，见本批次 format-check.log。未改 Snake 玩法逻辑，AI 未代写业务/核心断言。
+- 独立批次 [a2-session-messages-20261113-01](evidence/a2-session-messages-20261113-01/) 保存用户 Snake loop 快照、环境、原始测试输出和五个相关源码/测试前后相同 SHA256。Windows amd64 / Go 1.27.3，HEAD 5e47ebf，GOWORK=off 仅设于验证进程后还原；`go test -mod=readonly ./internal/server ./internal/snake ./internal/minesweeper ./cmd/mineserver -count=1 -v -timeout=30s`：30 顶层 PASS、0 SKIP、0 FAIL、退出 0。上一草稿的三处 unknown field 编译失败已消除，既有测试无新增断言。
+- 已有 TestMineCursorUsesConnectionIdentity 使用真实本机 WebSocket，输出收到 PlayerID=0、SessionID=1、Action=2、X=3、Y=4，支持一个正常操作消息携带连接身份的有限观察；其核心断言仍只验证既有玩家编号与坐标，不冒充 session 唯一性或复用隔离回归。未执行全库、单独构建、Race、手动终端联机或性能测试。
+- 下一步指导 StartMsg → ForwardStart 参数 → 三处调用的身份传递，属于既定方案；大厅和 GAME 尚不检查 session，固定名单整体未完成。无提交、推送、依赖/许可证或共享文件修改。
+
+## A2 用户接通开局身份参数与四包回归（2026-11-13）
+
+- AI 读取实际保存内容：StartMsg 新增 SessionID uint64；ForwardStart 接收 sessionID 参数并填入 StartMsg；mineWSHandler 的 MsgStartGame、共享 Client.readPump 的 MsgStartGame/MsgNextLevel 三处调用均传递当前连接的已有身份。client.go 同时格式化，未发现其他行为变更；AI 未修改源码或核心断言。
+- 批次 [a2-session-start-20261113-01](evidence/a2-session-start-20261113-01/) 保存四个用户文件快照、环境、原始输出及五个相关源码前后相同 SHA256。Windows amd64 / Go 1.27.3，HEAD 5e47ebf，GOWORK=off 仅设于验证进程后还原；执行 `go test -mod=readonly ./internal/server ./internal/snake ./internal/minesweeper ./cmd/mineserver -count=1 -v -timeout=30s`：30 顶层 PASS、0 SKIP、0 FAIL、退出 0。验证调用签名及既有行为回归，尚无新增 StartMsg.SessionID 核心断言或固定名单身份匹配，不把通过升级为阶段验收完成。
+- 下一步由用户在 runOnce 记录大厅接纳的连接身份，匹配大厅的离开/模式/开局消息；GAME 的身份判断仍待后续。未执行全库、单独构建、Race、手动终端联机或性能测试，无提交、推送、依赖/许可证或共享文件修改。
+
+## A2 大厅身份匹配草稿审查（2026-11-13，待调整广播顺序）
+
+- 用户按 TODO 在 runOnce 创建 playerSessions map，成功加入后写入身份并刷新名字；大厅 leave、setMode、start 先检查编号存在且身份相同，否则 continue；有效 leave 清理 lobbyPlayers 与 playerSessions。AI 读取实际源码和 diff，确认这些判断及原房主限制正确，未代写或修改业务。
+- 静态发现大厅 join 的 if ok 中先 broadcastLobby，随后才更新两个 map。已有编号被新连接复用且旧 leave 尚待处理时，addToLobby 对已有编号返回 true，广播会读到旧名字，随后更新无即时广播。当前仅提示用户将两个赋值移到广播前；未运行新测试或将上一批 30 PASS 冒充草稿验收。
+- 等待用户保存顺序修正后验证，再接 GAME 身份匹配；无提交、推送、依赖/许可证或共享文件修改。
+
+## A2 用户修正大厅广播顺序与扫雷包回归（2026-11-13）
+
+- AI 读取实际保存的 runOnce：LOBBY join 成功后先更新 playerSessions 与 lobbyPlayers，再 broadcastLobby，原先广播旧名字的顺序问题已修正；大厅三处身份匹配及有效 leave 的两表清理仍在。AI 未改业务或核心断言。
+- 批次 [a2-session-lobby-20261113-01](evidence/a2-session-lobby-20261113-01/) 保存当前 loop 快照（尚无 GAME 身份匹配，可供后续相同回归做旧实现对照）、环境、原始输出及三个扫雷源码/测试前后相同 SHA256。Windows amd64 / Go 1.27.3，HEAD 5e47ebf，GOWORK=off 仅设于验证进程后还原；`go test -mod=readonly ./internal/minesweeper -count=1 -v -timeout=30s`：13 PASS、0 SKIP、0 FAIL、退出 0。既有测试未调用 runOnce，大厅身份规则仅静态审查，运行验证待必要业务回归，不把该结果记为阶段验收。
+- 下一步用户按 TODO 在 GAME 的输入与离开分支匹配开局身份；名单身份表在 GAME 中保持固定，Game.Left 继续负责停止离开者操作。未执行全库、单独构建、Race 或联机，无提交、推送、依赖/许可证或共享文件修改。
+
+## A2 用户接入 GAME 身份匹配及综合回归外壳准备（2026-11-13）
+
+- AI 读取用户保存的 GAME mineCh/leaveCh：先从 playerSessions 查询身份并匹配，不存在或不同则 continue，匹配后才执行操作或 RemovePlayer；GAME 中不修改该表，既有取消和快照处理保留。业务由用户按 TODO 编写，AI 未代改。
+- 批次 [a2-session-game-20261113-01](evidence/a2-session-game-20261113-01/) 保存用户 loop 快照、环境、日志及三个既有扫雷源码/测试前后相同 SHA256。Windows amd64 / Go 1.27.3，HEAD 5e47ebf，GOWORK=off 仅设于验证进程后还原；新增外壳前执行 `go test -mod=readonly ./internal/minesweeper -count=1 -v -timeout=30s`：13 PASS、0 SKIP、0 FAIL、退出 0。该批既有用例不调用 runOnce，不能替代新场景回归。
+- AI 准备 internal/minesweeper/loop_test.go：TestRunOnceRejectsReusedConnection 顶部仅有观察变量、日志、业务 TODO 与故意失败的占位；exerciseReusedConnection 负责通道、两人 Cooperative / Easy 开局、复用 ID 的 join/Flag/leave 输入、顺序边界及清理。操作与离开顺序由 mineCh FIFO、无缓冲 leaveCh 接收确定，不靠短 sleep。此为直接驱动真实循环的内部场景，未使用 Hub/WebSocket，不将其记为真实网络复用测试。
+- 外壳 `go test -mod=readonly ./internal/minesweeper -run '^$' -count=1 -timeout=30s` 编译成功、退出 0、无用例运行。随后 `go test -mod=readonly ./internal/minesweeper -run '^TestRunOnceRejectsReusedConnection$' -count=1 -v -timeout=15s` 到达占位 t.Fatal、退出 1；输出 lateAccepted=false、endedEarly=false，Cancel=true，结果保留 Alice/Bob 两人，Alice.Flags=1、Bob.Flags=0、两人 Left=true。仅支持外壳可运行的有限观察，未填核心断言的 FAIL 不是业务缺陷回归证据，不记新用例通过。
+- 用户下一步填核心判断后，再用相同测试对比 a2-session-lobby 批次的未加 GAME guard 快照。未执行全库、单独构建、Race、手动联机或性能验证，无提交、推送、依赖/许可证或共享文件修改。
+
+## A2 用户完成编号复用综合断言与失败通过对照（2026-11-14）
+
+- AI 读取用户保存的 TestRunOnceRejectsReusedConnection：拒绝 lateAccepted、拒绝 endedEarly、检查 result 非 nil/Cancel/人数 2，再按 Name 识别 Alice/Bob、检查 Alice.Flags=1，拒绝其他名字并确认两人均找到。占位失败已删除；核心断言由用户按 TODO 填写，AI 没有代写，外壳仍归 AI 辅助。不认定用户独立设计整套并发测试。
+- 独立批次 [a2-session-regression-20261114-01](evidence/a2-session-regression-20261114-01/) 保存用户测试快照、环境、overlay 映射、两次原始输出及五个相关源码/测试前后相同 SHA256。Windows amd64 / Go 1.27.3，HEAD 5e47ebf，GOWORK=off 仅在验证进程后还原。旧实现通过仓库外临时 overlay 使用 a2-session-lobby 批次保存的 user-loop-before-game-guard.go.txt，不修改工作区源码，临时路径和精确命令见 environment.log 与 before-targeted.log。
+- 同一测试命令主体 `go test -mod=readonly ./internal/minesweeper -run '^TestRunOnceRejectsReusedConnection$' -count=1 -v -timeout=15s`，旧实现额外传入 `-overlay <本批次记录的路径>`：旧快照 lateAccepted=false、endedEarly=true，在用户的提前结束断言失败，退出 1；当前实现 lateAccepted=false、endedEarly=false，Cancel=true，名单 Alice/Bob，Alice.Flags=1，1 PASS、退出 0。旧快照缺少 GAME 输入和离开身份检查，其拒绝 join 及大厅匹配已存在，不把对照结论扩大为所有固定名单路径均获失败覆盖。
+- 结论为真实 runOnce 内部通道场景的回归通过，未经过 Hub/WebSocket，不等同网络编号复用与慢连接离开的综合验收。本轮未执行全库、单独构建、Race、手动联机或性能验证。下一步用户收尾 Hub 的 stale rejoin 指针匹配及慢连接 LeaveMsg，以落实已有固定名单/离开规则；无提交、推送、依赖/许可证或共享文件修改。
+
+## A2 Hub 收尾草稿静态审查（2026-11-14，待整理原检查与通知位置）
+
+- AI 读取用户保存的 Hub.Run：rejoin 新增 existing/ok 查询及指针相等判断，符合既定方案；但旧的仅 exists 检查仍紧随其后，当前为重复查询，提示用户删除原检查块。慢连接 LeaveMsg 已携带 c.id/c.sessionID，字段正确；发送目前在关闭通道的匿名函数内部，提示按原要求移动到 }() 调用后、慢连接 if 内，关闭函数仅负责原有关闭动作。
+- 此轮为源码及 diff 静态审查，AI 未代写核心业务；尚未运行 Go 测试、构建或连接诊断，不把已有回归结果记为这版 Hub 的验证。待用户保存两处局部整理后继续综合验收，无提交、推送、依赖/许可证或共享文件修改。
+
+## A2 Hub 收尾与必要综合验收（2026-11-14，学习复盘待完成）
+
+- 用户保存 Hub.Run：移除 rejoin 旧重复查询，保留存在性及 Client 指针检查；慢连接删除和关闭后发送带 c.id/c.sessionID 的 LeaveMsg。AI 读取实际文件，未代改业务。关于通知在匿名函数内/外，AI 已更正其为正常路径等效的组织取舍，不应将移动本身宣称为功能缺陷修复。
+- 批次 [a2-acceptance-20261114-01](evidence/a2-acceptance-20261114-01/) 保存用户 Hub、诊断代码、临时工厂 hook 完整副本、overlay 映射、环境、原始输出及 cmd/internal 全部 Go 文件前后相同 SHA256。Windows amd64 / Go 1.27.3，HEAD 5e47ebf，GOWORK=off 只设于验证进程后还原；辅助源码、overlay 均在 environment.log 所列仓库外 Temp 路径生成，长期副本在本批次，生产源码未被 overlay 替换写入。
+- Hub 有限观察：真实 Hub 把编号 0 从 alice/session1 复用给 carol/session2；同一 rejoin 队列依次发送旧/当前 Client 后，第一个转发的 join 为 carol/session2。向未消费发送队列的连接连续广播至饱和，收到其 PlayerID=0/SessionID=2 的 leave；后续 stale Unregister 被忽略，dave/session3 仍能复用编号加入和离开。见 diagnostic.log；这是辅助诊断输出核对，非用户新增核心断言。
+- 本机网络观察：httptest/真实 WebSocket → mineWSHandler → Hub/Loop，Alice/Bob Cooperative / Easy 开局；Alice 断开，Carol 获得同号 0、SessionID=3 且收到游戏进行中错误。Carol 对 (0,0) 插旗后，Bob 对 (1,0) 插旗，观察 flagsLeft=9、前者隐藏/后者插旗；Bob 断开后第一局 Cancel=true，名单 Alice/Bob，Bob.Flags=1、两人 Left=true。Carol 同一连接下一局 PlayAgain，完成胜局，再次 PlayAgain 后踩雷完成败局；之后 Dave 进入大厅。
+- 胜负诊断方法及限制：只在临时 Game 工厂中把新 Game 指针发送到诊断通道，原 RNG、布雷和玩法未修改；等待广播后读取棋盘选择未翻开的安全格或雷格，每次输入等待状态回复，不依赖猜测随机雷区。三次观察的快照分别为 mine - 1（取消，Alice/Bob）、mine - 2（胜局，Carol.Reveals=71）、mine - 3（败局，Carol.Reveals=46）；后局结束时再次观察的前局数据保持原值。观察快照来自 Game.SnapshotResult，真实 Loop 的生产日志依次保存编号 mine - 1/2/3、total=1/2/3；没有直接读取未暴露的进程内结果列表，快照隔离的正式断言由此前用户用例支持。
+- 精确诊断命令见 diagnostic.log：`go test -mod=readonly -overlay <临时 overlay.json> ./internal/server ./cmd/mineserver -run '^TestObserveA2' -count=1 -v -timeout=45s`，两个辅助观察正常结束、退出 0；不将诊断框架 PASS 冒充用户核心断言或长期自动回归。使用真实本机网络但无手动终端画面，不属于公共部署。
+- 正式全库验证：`go test -mod=readonly ./... -count=1 -v -timeout=60s` 为 43 顶层 PASS、0 SKIP、0 FAIL、退出 0，见 full-tests.log/test-summary.json；`go build -mod=readonly ./...` 无输出、退出 0，见 full-build.log；源码哈希全一致，见 hash-check.log。未执行 Race 或性能测试，无并发安全/吞吐性能结论。
+- 本轮完成工程验证，仍待一次用户学习复盘；上游架构、用户在 Gemini 下早期实现、当前 TODO 业务与断言、AI 诊断外壳的归属分别保留。不新增相似练习，不提交、推送或开启新阶段；未改依赖、许可证、共享文件或其他项目。
+- 哈希核对说明：首次直接比较 JSON 文本因 rg 枚举文件顺序不同而得到 false；随后按 Path 排序并比较 Path/Hash，差异 0，确认所有源码字节未变。原输出及修正核对均保留在 hash-check.log，不据枚举顺序差异推断源码变化。
+
+## A2 学习复盘反馈（2026-11-14，接纳与连接存续待澄清）
+
+- 用户回答连接身份作用为“防止新加入的玩家操作已经掉线的玩家”，回答重启结果为“目前没有数据持久化，所以重启就没了”；方向及保存边界正确，另需补充编号计数也会重置。用户对拒绝加入后仍检查操作/leave 明确表示未明白，不记为已掌握或阶段整体完成。
+- AI 补讲已选方案保留连接等待下一局：GAME join 返回 false 只阻止 AddPlayer，Hub 发送错误提示但不停止 readPump；操作仍可进入 mineCh，断开仍会 Unregister 并发送 leave。用同号不同身份的 Carol leave 错标 Alice、导致旧回归提前取消的实际场景对应解释。无源码或测试修改，无新测试/构建、提交推送或新阶段；等待该概念的简短说明，不追加相似练习。
+
+## A2 学习收尾与阶段交付（2026-11-14，完成停止）
+
+- 用户复盘说明连接身份用于防止新连接影响原玩家记录、未持久化导致重启丢失；对拒绝 join 与连接存续的区别，经实际失败回归场景讲解后，回答“因为拒绝加入复用了编号，也被监测，会产生消息，所以要加身份识别”。核心理解为拒绝本局接纳后连接仍产生操作/离开事件，必须识别连接；AI 同时澄清 Hub 先分配复用编号，之后游戏循环拒绝接纳的顺序。该概念在指导和解释下完成说明，不认定完全独立设计模块或熟练掌握所有并发行为，不追加练习。
+- A2 范围内的固定开局名单、离开停止操作并保留成绩、全员离开取消、胜负/取消快照及进程内保存、再次开局递增编号完成；必要工程验证及学习复盘已完成，阶段于 2026-11-14 完成停止。结果仅进程内保留、重启丢失，编号仅本次 Loop 内唯一；诊断辅助/正式断言、网络自动观察/手动体验等边界沿用上节，不新增未测性能或 Race 结论。
+- 当前接续的源码/测试文件为 cmd/mineserver/main.go、internal/minesweeper/loop.go、internal/minesweeper/loop_test.go、internal/server/hub.go、internal/server/client.go、internal/snake/loop.go；更早的 game.go/game_test.go 生命周期成果已包含在 5e47ebf 中。调用链：NewClient 分配身份 → 内部事件携带身份 → runOnce 大厅接纳并记录 → GAME 固定身份校验 → Game 离开/结束及 SnapshotResult → Loop 追加结果；复用原架构和线协议，不引入账号、持久化或通用抽象。
+- 贡献归属：上游提供 Hub、游戏循环、协议、玩法与客户端；早期生命周期代码由用户在 Gemini 指导下编写；当前用户按 TODO 完成核心业务和代表性断言，AI 提供讲解、调查、测试外壳、临时诊断、验证及本地文档。不得将全部上游能力或 AI 外壳记为用户独立开发。
+- 收尾只读核对：21 个 cmd/internal Go 文件与 a2-acceptance 批次记录的 Path/Hash 差异为 0；HEAD 和本地 origin/main 仍为 5e47ebf6571456f1833e628e2bec136aeaf1aefc。未重跑测试/构建、未重新联网核对远程；43 PASS 和构建通过引用该验收批次。新源码/文档/证据仍在工作区，无提交、推送、部署或新阶段，不修改 BASELINE、依赖、许可证或共享文件。
+
+## A2 完成后的提交推送准备（2026-11-14）
+
+- 用户明确要求“提交推送github”，授权本次 A2 接续源码、文档及证据提交到个人 origin/main。AI 核对当前 main 分支、origin 为 LearnedYet/multiplayer-terminal-games，upstream 为 siyad01 上游，本次仅操作 origin。
+- 提交前源码与 a2-acceptance 批次按 Path/Hash 比较差异为 0，沿用已完成的 43 PASS 与构建通过，不重复运行测试或修改业务。LICENSE、go.mod、go.sum、BASELINE 相对 HEAD 无差异。提交范围包含此前未提交的交接材料、六个源码/测试文件、本地阶段文档及本轮独立证据批次；提交/推送结果以实际 Git 回执为准，不预填成功。
+
 ## 单项贡献模板
 
 复制后填写；未发生的字段留空。
@@ -390,3 +502,4 @@ go run ./cmd/client -name bob
 | --- | --- | --- | --- | --- | --- |
 | A1.1-R1（指导下完成） | 字段赋值及消息断言，自动与有限联机验证通过 | `488dd313bc13` / `d02f621` | 补字段赋值、玩家 1 输入及两字段判断；格式化报告经指导修正 | 上游架构复用；AI 讲解、格式整理及验证辅助 | [回归通过](evidence/a11-regression-20261111-01/current-targeted-test.log)、[联机截图](evidence/a11-snake-after-fix-20261111-01/server-mode-2-and-clean-shutdown.png) |
 | A1.2-R4（指导下完成，已交付） | 光标身份来源修复，自动验证及正常位置同步有限观察完成 | `488dd313bc13` / `d02f621` | 按示例保存身份断言及 `c.ID()` 单行修复；本人操作双客户端并正确解释身份与坐标来源 | 上游协议/游戏复用；AI 提取处理函数、搭建网络外壳、讲解及验证 | [修复前失败](evidence/a12-cursor-before-fix-20261111-01/targeted-test.log)、[修复后通过](evidence/a12-cursor-after-fix-20261111-01/targeted-test.log)、[联机画面](evidence/a12-cursor-manual-20261111-01/02-two-clients-after-bob-move.png) |
+| A2（指导下完成，阶段已结束） | 单对局生命周期、固定名单及连接身份隔离 | `d02f621` / 部分在 `5e47ebf`，接续部分未提交 | Gemini 下早期实现；本聊天 TODO 核心业务、编号复用断言及提示下概念复盘 | 上游架构复用；AI 讲解、测试外壳、诊断及验证 | [复用回归对照](evidence/a2-session-regression-20261114-01/)、[综合验收](evidence/a2-acceptance-20261114-01/) |

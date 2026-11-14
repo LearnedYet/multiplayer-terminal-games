@@ -16,9 +16,10 @@ import (
 
 // MineInputMsg carries a player action.
 type MineInputMsg struct {
-	PlayerID uint8
-	Action   MineAction
-	X, Y     uint8
+	PlayerID  uint8
+	SessionID uint64
+	Action    MineAction
+	X, Y      uint8
 }
 
 type MineAction uint8
@@ -63,6 +64,7 @@ func Loop(
 
 type SetModeMsg struct {
 	PlayerID   uint8
+	SessionID  uint64
 	Mode       Mode
 	Difficulty string
 }
@@ -81,6 +83,7 @@ func runOnce(
 	log.Println("minesweeper: lobby open")
 
 	lobbyPlayers := make(map[uint8]string)
+	playerSessions := make(map[uint8]uint64)
 	lobbyIDs := []uint8{}
 	var hostID uint8
 	hasHost := false
@@ -135,11 +138,22 @@ func runOnce(
 			ok := addToLobby(msg.PlayerID, msg.Name)
 			msg.ResultChan <- ok
 			if ok {
+				playerSessions[msg.PlayerID] = msg.SessionID
+				lobbyPlayers[msg.PlayerID] = msg.Name
 				broadcastLobby()
+
 			}
 
 		case msg := <-leaveCh:
+			// TODO：查询 playerSessions，取得保存的身份及是否存在
+			// TODO：编号不存在，或保存身份与 msg.SessionID 不同，就 continue
+			sessionID, ok := playerSessions[msg.PlayerID]
+			if !ok || sessionID != msg.SessionID {
+				continue
+			}
+
 			delete(lobbyPlayers, msg.PlayerID)
+			delete(playerSessions, msg.PlayerID)
 			for i, id := range lobbyIDs {
 				if id == msg.PlayerID {
 					lobbyIDs = append(lobbyIDs[:i], lobbyIDs[i+1:]...)
@@ -155,6 +169,11 @@ func runOnce(
 			broadcastLobby()
 
 		case msg := <-setModeCh:
+			sessionID, ok := playerSessions[msg.PlayerID]
+			if !ok || sessionID != msg.SessionID {
+				continue
+			}
+
 			if !hasHost || msg.PlayerID != hostID {
 				continue
 			}
@@ -163,6 +182,12 @@ func runOnce(
 			broadcastLobby()
 
 		case msg := <-startCh:
+
+			sessionID, ok := playerSessions[msg.PlayerID]
+			if !ok || sessionID != msg.SessionID {
+				continue
+			}
+
 			if !hasHost || msg.PlayerID != hostID {
 				continue
 			}
@@ -206,6 +231,11 @@ startGame:
 	for {
 		select {
 		case msg := <-mineCh:
+			sessionID, ok := playerSessions[msg.PlayerID]
+			if !ok || sessionID != msg.SessionID {
+				continue
+			}
+
 			if game.Over {
 				continue
 			}
@@ -276,21 +306,14 @@ startGame:
 
 		case msg := <-joinCh:
 			// Late join during game
-			if gameMode == ModeCooperative || gameMode == ModeCompetitive {
-				game.AddPlayer(msg.PlayerID, msg.Name)
-				msg.ResultChan <- true
-				// Send full board state to new player
-				broadcast(protocol.EncodeMineState(
-					game.Width, game.Height,
-					game.VisibleCells(),
-					game.Scores(),
-					uint16(game.FlagsLeft),
-				))
-			} else {
-				msg.ResultChan <- false
-			}
+			msg.ResultChan <- false
 
 		case msg := <-leaveCh:
+			sessionID, ok := playerSessions[msg.PlayerID]
+			if !ok || sessionID != msg.SessionID {
+				continue
+			}
+
 			game.RemovePlayer(msg.PlayerID)
 			log.Printf("minesweeper: player %d left", msg.PlayerID)
 

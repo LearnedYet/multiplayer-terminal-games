@@ -1,0 +1,5 @@
+All cmd/internal Go hashes unchanged during acceptance: False
+Initial raw JSON comparison included rg enumeration order and therefore returned False.
+Correction: compare sorted records by Path and Hash, ignoring enumeration order.
+Before files: 21; after files: 21; path/hash differences: 0
+All source file bytes unchanged: True

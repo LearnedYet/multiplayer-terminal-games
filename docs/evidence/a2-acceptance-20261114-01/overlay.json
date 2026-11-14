@@ -1,0 +1,7 @@
+{
+  "Replace": {
+    "C:/Dev/Go/A/internal/server/a2_observe_test.go": "C:/Users/c8618/AppData/Local/Temp/a2-acceptance-20261114-01/hub_observe_test.go",
+    "C:/Dev/Go/A/internal/minesweeper/game.go": "C:/Users/c8618/AppData/Local/Temp/a2-acceptance-20261114-01/game-observed.go",
+    "C:/Dev/Go/A/cmd/mineserver/a2_observe_test.go": "C:/Users/c8618/AppData/Local/Temp/a2-acceptance-20261114-01/network_observe_test.go"
+  }
+}

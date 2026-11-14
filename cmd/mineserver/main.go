@@ -137,32 +137,35 @@ func mineWSHandler(
 				case protocol.MsgMineReveal:
 					if len(data) >= 3 {
 						mineCh <- minesweeper.MineInputMsg{
-							PlayerID: c.ID(),
-							Action:   minesweeper.ActionReveal,
-							X:        data[1],
-							Y:        data[2],
+							PlayerID:  c.ID(),
+							SessionID: c.SessionID(),
+							Action:    minesweeper.ActionReveal,
+							X:         data[1],
+							Y:         data[2],
 						}
 					}
 				case protocol.MsgMineFlag:
 					if len(data) >= 3 {
 						mineCh <- minesweeper.MineInputMsg{
-							PlayerID: c.ID(),
-							Action:   minesweeper.ActionFlag,
-							X:        data[1],
-							Y:        data[2],
+							PlayerID:  c.ID(),
+							SessionID: c.SessionID(),
+							Action:    minesweeper.ActionFlag,
+							X:         data[1],
+							Y:         data[2],
 						}
 					}
 				case protocol.MsgMineCursor:
 					if len(data) >= 4 {
 						mineCh <- minesweeper.MineInputMsg{
-							PlayerID: c.ID(),
-							Action:   minesweeper.ActionCursor,
-							X:        data[2],
-							Y:        data[3],
+							PlayerID:  c.ID(),
+							SessionID: c.SessionID(),
+							Action:    minesweeper.ActionCursor,
+							X:         data[2],
+							Y:         data[3],
 						}
 					}
 				case protocol.MsgStartGame:
-					hub.ForwardStart(c.ID())
+					hub.ForwardStart(c.ID(), c.SessionID())
 				case protocol.MsgSetMineMode:
 					mode, diff, err := protocol.ParseSetMineMode(data)
 					if err != nil {
@@ -170,6 +173,7 @@ func mineWSHandler(
 					}
 					setModeCh <- minesweeper.SetModeMsg{
 						PlayerID:   c.ID(),
+						SessionID:  c.SessionID(),
 						Mode:       minesweeper.Mode(mode),
 						Difficulty: diff,
 					}

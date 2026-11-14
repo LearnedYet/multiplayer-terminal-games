@@ -1,0 +1,7 @@
+FAIL	github.com/siyad01/multiplayer-terminal-games/internal/server [build failed]
+# github.com/siyad01/multiplayer-terminal-games/internal/server
+internal\server\hub.go:109:5: unknown field SessionID in struct literal of type snake.JoinMsg
+internal\server\hub.go:132:5: unknown field SessionID in struct literal of type snake.JoinMsg
+internal\server\hub.go:157:5: unknown field SessionID in struct literal of type snake.LeaveMsg
+FAIL
+Exit code: 1
