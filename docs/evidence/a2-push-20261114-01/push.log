@@ -1,0 +1,4 @@
+Command: git -c http.proxy=http://127.0.0.1:10808 -c http.sslVerify=true push origin main
+To https://github.com/LearnedYet/multiplayer-terminal-games.git
+   5e47ebf..e3413e3  main -> main
+Exit code: 0

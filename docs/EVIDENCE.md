@@ -464,6 +464,14 @@ go run ./cmd/client -name bob
 - 用户明确要求“提交推送github”，授权本次 A2 接续源码、文档及证据提交到个人 origin/main。AI 核对当前 main 分支、origin 为 LearnedYet/multiplayer-terminal-games，upstream 为 siyad01 上游，本次仅操作 origin。
 - 提交前源码与 a2-acceptance 批次按 Path/Hash 比较差异为 0，沿用已完成的 43 PASS 与构建通过，不重复运行测试或修改业务。LICENSE、go.mod、go.sum、BASELINE 相对 HEAD 无差异。提交范围包含此前未提交的交接材料、六个源码/测试文件、本地阶段文档及本轮独立证据批次；提交/推送结果以实际 Git 回执为准，不预填成功。
 
+## A2 最终代码提交推送回执（2026-11-14）
+
+- 按用户“提交推送github”指令，提交 75 个文件至 e3413e3b66deaac9113f4ab1e94cd77dcbe59b18，标题 `feat: freeze minesweeper match rosters by connection identity`；包括六个接续源码/测试文件、阶段完成文档、交接材料和原始验证批次。提交正文保留用户/Gemini/AI 各自贡献和验证边界；没有修改 LICENSE、依赖、BASELINE 或共享文件。
+- 原始暂存空白检查在旧用户源码快照 docs/evidence/a2-session-messages-draft-20261113-01/user-snake-loop.go.txt 发现一处原始行尾空格。保留证据内容，仅将该文件排除后检查其余暂存内容通过，不修改 Git 全局空白规则。源码与验收哈希一致，沿用 43 PASS 与构建结果，本轮未重跑测试。
+- GitHub 直连 ls-remote 低速超时，旧代理端口 7897 已无监听；本轮核对系统当前代理及 netstat，发现 127.0.0.1:10808 在监听。仅对 Git 命令指定该代理并保留 http.sslVerify=true，ls-remote 与 push 均成功，未修改持久代理配置或跳过现有 hooks/LFS。
+- `git push origin main` 普通非强制推送退出 0，个人 origin/main 从 5e47ebf 快进至 e3413e3。随后联网 ls-remote 与本地 HEAD 完全相同，回执归档前工作区条目数为 0；原始输出与核对见 [本批次](evidence/a2-push-20261114-01/)。未推送 upstream、未部署或开启新阶段。
+- 本段、项目约定和状态更新及原始回执随后通过独立文档提交归档并推送；最新管理提交由 Git refs 和最终操作回执确认，避免在提交内自引用自身哈希。本次授权完成后不延续为以后自动提交推送。
+
 ## 单项贡献模板
 
 复制后填写；未发生的字段留空。
@@ -502,4 +510,4 @@ go run ./cmd/client -name bob
 | --- | --- | --- | --- | --- | --- |
 | A1.1-R1（指导下完成） | 字段赋值及消息断言，自动与有限联机验证通过 | `488dd313bc13` / `d02f621` | 补字段赋值、玩家 1 输入及两字段判断；格式化报告经指导修正 | 上游架构复用；AI 讲解、格式整理及验证辅助 | [回归通过](evidence/a11-regression-20261111-01/current-targeted-test.log)、[联机截图](evidence/a11-snake-after-fix-20261111-01/server-mode-2-and-clean-shutdown.png) |
 | A1.2-R4（指导下完成，已交付） | 光标身份来源修复，自动验证及正常位置同步有限观察完成 | `488dd313bc13` / `d02f621` | 按示例保存身份断言及 `c.ID()` 单行修复；本人操作双客户端并正确解释身份与坐标来源 | 上游协议/游戏复用；AI 提取处理函数、搭建网络外壳、讲解及验证 | [修复前失败](evidence/a12-cursor-before-fix-20261111-01/targeted-test.log)、[修复后通过](evidence/a12-cursor-after-fix-20261111-01/targeted-test.log)、[联机画面](evidence/a12-cursor-manual-20261111-01/02-two-clients-after-bob-move.png) |
-| A2（指导下完成，阶段已结束） | 单对局生命周期、固定名单及连接身份隔离 | `d02f621` / 部分在 `5e47ebf`，接续部分未提交 | Gemini 下早期实现；本聊天 TODO 核心业务、编号复用断言及提示下概念复盘 | 上游架构复用；AI 讲解、测试外壳、诊断及验证 | [复用回归对照](evidence/a2-session-regression-20261114-01/)、[综合验收](evidence/a2-acceptance-20261114-01/) |
+| A2（指导下完成，阶段已结束） | 单对局生命周期、固定名单及连接身份隔离 | `d02f621` / `5e47ebf`、`e3413e3`，已推送个人 origin/main | Gemini 下早期实现；本聊天 TODO 核心业务、编号复用断言及提示下概念复盘 | 上游架构复用；AI 讲解、测试外壳、诊断及验证 | [复用回归对照](evidence/a2-session-regression-20261114-01/)、[综合验收](evidence/a2-acceptance-20261114-01/)、[推送回执](evidence/a2-push-20261114-01/) |

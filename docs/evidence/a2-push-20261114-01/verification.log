@@ -1,0 +1,10 @@
+A2 user-authorized ordinary push to personal origin/main
+Code commit: e3413e3b66deaac9113f4ab1e94cd77dcbe59b18
+Remote verification:
+e3413e3b66deaac9113f4ab1e94cd77dcbe59b18	refs/heads/main
+Remote check exit: 0
+Worktree entries after code push, before receipt documents: 0
+No upstream push; no forced push; TLS verification and existing hooks retained.
+Direct ls-remote first timed out; remembered port 7897 had no listener. Current Windows proxy setting and netstat listener identified 127.0.0.1:10808, verified by successful ls-remote/push. Proxy set per Git invocation only.
+Staged whitespace: raw old user-snake-loop.go.txt preserves one original trailing space; only this file excluded from whitespace check; all other staged content passed.
+The final receipt documentation commit follows this code commit; its final ref is reported by Git, avoiding self-referential commit hashes in tracked documents.
