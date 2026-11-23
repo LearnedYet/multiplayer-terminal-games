@@ -1,0 +1,32 @@
+Thread: 01a1d8b6-cd1f-7ff3-bdb7-a05adcfc61a4
+Environment: Windows; GOWORK=off; local learning MySQL 127.0.0.1:13306
+go version go1.27.3 windows/amd64
+User source SHA256: E940586D393319119AB84B02DD3861D3275D21B34ADA476A90328EF850DCEAFA
+Temporary observation helper: C:\Users\c8618\AppData\Local\GoA\artifacts\a3-match-write-20261119-01\match_write_observation_test.go
+go build -mod=readonly -o <outside repository> ./cmd/mineserver
+Build exit code: 0
+MySQL ready at 127.0.0.1:13306; server PID=46500
+VERSION()	DATABASE()
+8.4.13	go_a_learning
+go test -mod=readonly -overlay C:\Users\c8618\AppData\Local\GoA\artifacts\a3-match-write-20261119-01\overlay.json ./cmd/mineserver -run '^TestObserveMatchSettlement$' -count=1 -v -timeout=30s
+=== RUN   TestObserveMatchSettlement
+    match_write_observation_test.go:54: first save: game_id=a3-observe-L5SXOBBHB7QFCZMLLEIXFM47BR error=<nil>
+    match_write_observation_test.go:60: after first save: match_results=1 match_players=2
+    match_write_observation_test.go:64: after first save: won=true canceled=false
+    match_write_observation_test.go:72: after first save: player={ID:1 Name:Alice Reveals:9 Flags:2 Left:false}
+    match_write_observation_test.go:72: after first save: player={ID:2 Name:Bob Reveals:3 Flags:1 Left:true}
+    match_write_observation_test.go:51: duplicate game with changed payload: game_id=a3-observe-L5SXOBBHB7QFCZMLLEIXFM47BR error_number=1062 error=Error 1062 (23000): Duplicate entry 'a3-observe-L5SXOBBHB7QFCZMLLEIXFM47BR' for key 'match_results.PRIMARY'
+    match_write_observation_test.go:60: after duplicate game: match_results=1 match_players=2
+    match_write_observation_test.go:64: after duplicate game: won=true canceled=false
+    match_write_observation_test.go:72: after duplicate game: player={ID:1 Name:Alice Reveals:9 Flags:2 Left:false}
+    match_write_observation_test.go:72: after duplicate game: player={ID:2 Name:Bob Reveals:3 Flags:1 Left:true}
+    match_write_observation_test.go:51: second player conflicts: game_id=a3-observe-L5SXOBBHB7QFCZMLLEIXFM47BR-rollback error_number=1062 error=Error 1062 (23000): Duplicate entry 'a3-observe-L5SXOBBHB7QFCZMLLEIXFM47BR-rollback-1' for key 'match_players.PRIMARY'
+    match_write_observation_test.go:60: after second player conflicts: match_results=0 match_players=0
+    match_write_observation_test.go:43: cleanup DELETE FROM match_players WHERE game_id IN (?, ?): deleted=2
+    match_write_observation_test.go:43: cleanup DELETE FROM match_results WHERE game_id IN (?, ?): deleted=1
+--- PASS: TestObserveMatchSettlement (0.02s)
+PASS
+ok  	github.com/siyad01/multiplayer-terminal-games/cmd/mineserver	0.879s
+Observation exit code: 0
+MySQL server PID=46500 exited normally.
+Port 13306 no longer listening.

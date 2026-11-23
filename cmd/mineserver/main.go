@@ -1,11 +1,12 @@
 // cmd/mineserver/main.go
-// Minesweeper server — separate binary from snake server.
-// Listens on :8081 to avoid conflict with snake server (:8080).
+// 扫雷服务独立于贪吃蛇服务运行。
+// 扫雷监听 :8081，避免与使用 :8080 的贪吃蛇服务冲突。
 
 package main
 
 import (
 	"context"
+	"database/sql"
 	"log"
 	"net/http"
 	"os"
@@ -13,6 +14,7 @@ import (
 	"syscall"
 	"time"
 
+	_ "github.com/go-sql-driver/mysql"
 	"github.com/gorilla/websocket"
 	"github.com/siyad01/multiplayer-terminal-games/internal/minesweeper"
 	"github.com/siyad01/multiplayer-terminal-games/internal/protocol"
@@ -20,8 +22,36 @@ import (
 	"github.com/siyad01/multiplayer-terminal-games/internal/snake"
 )
 
+func probeMySQL(dsn string) (*sql.DB, error) {
+	db, err := sql.Open("mysql", dsn)
+	if err != nil {
+		return nil, err
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	// 探测失败时，关闭刚打开的数据库句柄并返回错误。
+	if err := db.PingContext(ctx); err != nil {
+		db.Close()
+		return nil, err
+	}
+	return db, nil
+}
+
 func main() {
-	// Shared channels
+	var db *sql.DB
+	dsn := os.Getenv("MINESWEEPER_MYSQL_DSN")
+	if dsn != "" {
+		var err error
+		db, err = probeMySQL(dsn)
+		if err != nil {
+			log.Fatalf("扫雷服务：MySQL 连接探测失败：%v", err)
+		}
+		defer db.Close()
+	}
+
+	// 游戏循环和连接管理器共用的通道。
 	broadcastCh := make(chan []byte, 64)
 	joinCh := make(chan snake.JoinMsg, 4)
 	leaveCh := make(chan snake.LeaveMsg, 4)
@@ -31,27 +61,43 @@ func main() {
 	mineCh := make(chan minesweeper.MineInputMsg, 32)
 	setModeCh := make(chan minesweeper.SetModeMsg, 4)
 
-	// Start minesweeper loop
-	go minesweeper.Loop(
-		mineCh, joinCh, leaveCh, startCh, setModeCh,
-		stopCh, broadcastCh, gameOverCh,
-	)
+	// 只有配置了数据库才启用结算回调。每局写入最多等待 3 秒。
+	var saveResult func(minesweeper.MatchResult) error
+	if db != nil {
+		saveResult = func(result minesweeper.MatchResult) error {
+			ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+			defer cancel()
+			return saveMatchResult(ctx, db, result)
+		}
+	}
+	// 启动 Loop 时传入回调，并在 Loop 退出时发出完成信号。
+	loopDone := make(chan struct{})
+	go func() {
+		defer close(loopDone)
+		minesweeper.Loop(mineCh, joinCh, leaveCh, startCh, setModeCh,
+			stopCh, broadcastCh, gameOverCh, saveResult)
+	}()
 
-	// Hub — reuse snake hub with mine message forwarding
-	inputCh := make(chan snake.InputMsg, 1) // unused but hub needs it
+	// 复用贪吃蛇的连接管理器，由它转发扫雷消息。
+	inputCh := make(chan snake.InputMsg, 1) // 扫雷不用，但创建连接管理器时需要传入。
 	setTimeCh := make(chan snake.SetTimeMsg, 1)
-	snakeModeCh := make(chan snake.SetModeMsg, 1) // unused in minesweeper but hub requires it
+	snakeModeCh := make(chan snake.SetModeMsg, 1) // 扫雷不用，但创建连接管理器时需要传入。
 	hub := server.NewHub(broadcastCh, inputCh, joinCh, leaveCh,
 		startCh, setTimeCh, snakeModeCh)
 	go hub.Run()
 
 	go func() {
 		for id := range gameOverCh {
-			log.Printf("minesweeper: game over, winner player %d", id)
+			log.Printf("扫雷：对局结束，相关玩家编号=%d", id)
 		}
 	}()
 
 	http.HandleFunc("/ws", mineWSHandler(hub, mineCh, setModeCh))
+	// 数据库连接可用时，注册 GET /matches/{gameID} 战绩详情路由。
+	if db != nil {
+		http.HandleFunc("GET /matches/{gameID}", matchDetailHandler(db))
+		// TODO(A3)：分页处理函数写好后，在这里注册 GET /matches。
+	}
 
 	srv := &http.Server{Addr: ":8081", Handler: nil}
 
@@ -60,21 +106,23 @@ func main() {
 
 	go func() {
 		<-sigCh
-		log.Println("shutting down minesweeper server...")
+		log.Println("正在关闭扫雷服务……")
 		close(stopCh)
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
 		if err := srv.Shutdown(ctx); err != nil {
-			log.Printf("shutdown error: %v", err)
+			log.Printf("扫雷服务关闭失败：%v", err)
 		}
 	}()
 
-	log.Printf("minesweeper server listening on :8081")
-	log.Printf("connect: go run cmd/client/main.go -name yourname")
+	log.Printf("扫雷服务正在监听 :8081")
+	log.Printf("启动客户端：go run cmd/client/main.go -name yourname")
 	if err := srv.ListenAndServe(); err != http.ErrServerClosed {
 		log.Fatal(err)
 	}
-	log.Println("minesweeper server stopped cleanly")
+	// 正常停机时等 Loop 结束，再让 main 返回并关闭 db。
+	<-loopDone
+	log.Println("扫雷服务已正常停止")
 
 }
 
@@ -98,14 +146,14 @@ func mineWSHandler(
 
 		conn, err := upgrader.Upgrade(w, r, nil)
 		if err != nil {
-			log.Printf("upgrade error: %v", err)
+			log.Printf("升级为 WebSocket 连接失败：%v", err)
 			return
 		}
 
 		c := hub.NewClient(name)
 		hub.Register(c)
 
-		// writePump: hub → WebSocket
+		// 把连接管理器发来的消息写给 WebSocket 客户端。
 		go func() {
 			defer conn.Close()
 			for data := range c.SendChan() {
@@ -116,7 +164,7 @@ func mineWSHandler(
 			}
 		}()
 
-		// readPump: WebSocket → mine loop
+		// 读取 WebSocket 客户端的消息，再转给扫雷游戏循环。
 		go func() {
 			defer func() {
 				hub.Unregister(c)

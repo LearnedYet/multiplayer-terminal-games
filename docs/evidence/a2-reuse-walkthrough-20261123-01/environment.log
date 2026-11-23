@@ -1,0 +1,5 @@
+批次：a2-reuse-walkthrough-20261123-01
+执行对话：01a1d8b6-cd1f-7ff3-bdb7-a05adcfc61a4
+目录：C:/Dev/Go/A；GOWORK=off
+go version go1.27.3 windows/amd64
+修复前源码：C:\Dev\Go\A\docs\evidence\a2-session-lobby-20261113-01\user-loop-before-game-guard.go.txt

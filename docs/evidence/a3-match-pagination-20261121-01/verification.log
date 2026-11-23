@@ -1,0 +1,33 @@
+会话：01a1d8b6-cd1f-7ff3-bdb7-a05adcfc61a4
+环境：Windows amd64；GOWORK=off；本机 MySQL 学习库
+go version go1.27.3 windows/amd64
+用户源码 SHA256：B90D41050931D4FD32A590017C0BD7E51FC821D0F500CDDD1A061AE8F1774979
+临时观察工具：C:\Users\c8618\AppData\Local\GoA\artifacts\a3-match-pagination-20261121-01\pagination_observation_test.go
+go build -mod=readonly -o C:\Users\c8618\AppData\Local\GoA\artifacts\a3-match-pagination-20261121-01\mineserver.exe ./cmd/mineserver
+构建退出码：0
+MySQL ready at 127.0.0.1:13306; server PID=26736
+VERSION()	DATABASE()
+8.4.13	go_a_learning
+go test -mod=readonly -overlay C:\Users\c8618\AppData\Local\GoA\artifacts\a3-match-pagination-20261121-01\overlay.json ./cmd/mineserver -run '^TestObserveMatchPagination$' -count=1 -v -timeout=25s
+=== RUN   TestObserveMatchPagination
+    pagination_observation_test.go:48: 验证前缀：a3-list-BHB7T2AY5ETRDNCBBIMDXZZIDB-；倒序插入 51 行；前缀前有 0 行；整表 51 行
+    pagination_observation_test.go:51: 条数=2，偏移=0：返回 2 行，切片为空引用=false，错误=<nil>
+    pagination_observation_test.go:53: 首行={GameID:a3-list-BHB7T2AY5ETRDNCBBIMDXZZIDB-01 Won:false Cancel:false}；末行={GameID:a3-list-BHB7T2AY5ETRDNCBBIMDXZZIDB-02 Won:true Cancel:false}
+    pagination_observation_test.go:51: 条数=2，偏移=2：返回 2 行，切片为空引用=false，错误=<nil>
+    pagination_observation_test.go:53: 首行={GameID:a3-list-BHB7T2AY5ETRDNCBBIMDXZZIDB-03 Won:false Cancel:true}；末行={GameID:a3-list-BHB7T2AY5ETRDNCBBIMDXZZIDB-04 Won:true Cancel:false}
+    pagination_observation_test.go:51: 条数=50，偏移=0：返回 50 行，切片为空引用=false，错误=<nil>
+    pagination_observation_test.go:53: 首行={GameID:a3-list-BHB7T2AY5ETRDNCBBIMDXZZIDB-01 Won:false Cancel:false}；末行={GameID:a3-list-BHB7T2AY5ETRDNCBBIMDXZZIDB-50 Won:true Cancel:false}
+    pagination_observation_test.go:51: 条数=1，偏移=50：返回 1 行，切片为空引用=false，错误=<nil>
+    pagination_observation_test.go:53: 首行={GameID:a3-list-BHB7T2AY5ETRDNCBBIMDXZZIDB-51 Won:false Cancel:true}；末行={GameID:a3-list-BHB7T2AY5ETRDNCBBIMDXZZIDB-51 Won:false Cancel:true}
+    pagination_observation_test.go:51: 条数=2，偏移=51：返回 0 行，切片为空引用=false，错误=<nil>
+    pagination_observation_test.go:51: 条数=51，偏移=0：返回 0 行，切片为空引用=true，错误=分页参数不合法
+    pagination_observation_test.go:51: 条数=0，偏移=0：返回 0 行，切片为空引用=true，错误=分页参数不合法
+    pagination_observation_test.go:51: 条数=2，偏移=-1：返回 0 行，切片为空引用=true，错误=分页参数不合法
+    pagination_observation_test.go:43: 清理本批次测试数据：51 行
+--- PASS: TestObserveMatchPagination (0.03s)
+PASS
+ok  	github.com/siyad01/multiplayer-terminal-games/cmd/mineserver	1.001s
+观察程序退出码：0
+MySQL server PID=26736 exited normally.
+已核对 13306 无监听。
+验证前后源码哈希一致。

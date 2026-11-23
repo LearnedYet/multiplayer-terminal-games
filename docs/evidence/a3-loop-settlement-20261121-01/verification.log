@@ -1,0 +1,21 @@
+Thread: 01a1d8b6-cd1f-7ff3-bdb7-a05adcfc61a4
+Windows amd64; GOWORK=off; local learning database
+go version go1.27.3 windows/amd64
+cmd/mineserver/main.go SHA256: FF3C38982ACDE7DB8090FF90B5FD3FF83449FAB1BCC3016FF150A0DEF664874C
+internal/minesweeper/loop.go SHA256: 5DA0CBA221768FA4AC9C52C60F751E879085D017C1B3349F9CFF8567FD7BB65E
+cmd/mineserver/match_store.go SHA256: 7E296D5DF77A4D733558A1C50B794476518995A8965A2D4BFFA18BDD725613CA
+go build -mod=readonly -o C:\Users\c8618\AppData\Local\GoA\artifacts\a3-loop-settlement-20261121-01\mineserver.exe ./cmd/mineserver
+Build exit code: 0
+go test -mod=readonly ./cmd/mineserver ./internal/minesweeper -count=1 -timeout=30s
+ok  	github.com/siyad01/multiplayer-terminal-games/cmd/mineserver	0.897s
+ok  	github.com/siyad01/multiplayer-terminal-games/internal/minesweeper	0.299s
+Targeted tests exit code: 0
+MySQL ready at 127.0.0.1:13306; server PID=21680
+VERSION()	DATABASE()
+8.4.13	go_a_learning
+go test -mod=readonly -overlay C:\Users\c8618\AppData\Local\GoA\artifacts\a3-loop-settlement-20261121-01\overlay.json ./cmd/mineserver -run '^TestObserveLoopSettlement$' -count=1 -v -timeout=25s
+# github.com/siyad01/multiplayer-terminal-games/cmd/mineserver [github.com/siyad01/multiplayer-terminal-games/cmd/mineserver.test]
+FAIL	github.com/siyad01/multiplayer-terminal-games/cmd/mineserver [build failed]
+C:\Users\c8618\AppData\Local\GoA\artifacts\a3-loop-settlement-20261121-01\settlement_observation_test.go:10:2: "strings" imported and not used
+FAIL
+MySQL server PID=21680 exited normally.

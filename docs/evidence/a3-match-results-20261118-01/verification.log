@@ -1,0 +1,17 @@
+Thread: 01a1d8b6-cd1f-7ff3-bdb7-a05adcfc61a4
+Environment: Windows, local MySQL on 127.0.0.1:13306, go_a_learning
+Source: C:\Dev\Go\A\db\schema.sql
+SHA256: C21EC4E6BB2521E408A76D90E318A6D696F137EF6266005EDFBD8F74F9317F4B
+MySQL ready at 127.0.0.1:13306; server PID=31600
+Connect-MySQL.ps1 -Sql "SELECT VERSION(), DATABASE(); SHOW TABLES;"
+VERSION()	DATABASE()
+8.4.13	go_a_learning
+Connect-MySQL.ps1 -Sql (Get-Content -Raw -Encoding UTF8 -LiteralPath db/schema.sql)
+DDL client exit code: 0
+Connect-MySQL.ps1 -Sql "SHOW CREATE TABLE match_results; SHOW TABLES;"
+Table	Create Table
+match_results	CREATE TABLE `match_results` (\n  `game_id` varchar(64) COLLATE utf8mb4_bin NOT NULL,\n  `won` tinyint(1) NOT NULL,\n  `canceled` tinyint(1) NOT NULL,\n  PRIMARY KEY (`game_id`)\n) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin
+Tables_in_go_a_learning
+match_results
+MySQL server PID=31600 exited normally.
+Port 13306 no longer listening.

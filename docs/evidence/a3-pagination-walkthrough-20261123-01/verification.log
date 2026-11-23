@@ -1,0 +1,28 @@
+批次：a3-pagination-walkthrough-20261123-01；会话：01a1d8b6-cd1f-7ff3-bdb7-a05adcfc61a4
+Windows amd64 / GOWORK=off / MySQL 8.4.13 本机学习库
+go version go1.27.3 windows/amd64
+go test -mod=readonly -overlay C:\Users\c8618\AppData\Local\GoA\artifacts\a3-match-pagination-20261121-01\overlay.json ./cmd/mineserver -run '^TestObserveMatchPagination$' -count=1 -v -timeout=25s
+=== RUN   TestObserveMatchPagination
+    pagination_observation_test.go:48: 验证前缀：a3-list-MVTNGWFV6NMA3YTLX6YG5FWQ3J-；倒序插入 51 行；前缀前有 0 行；整表 51 行
+    pagination_observation_test.go:51: 条数=2，偏移=0：返回 2 行，切片为空引用=false，错误=<nil>
+    pagination_observation_test.go:53: 首行={GameID:a3-list-MVTNGWFV6NMA3YTLX6YG5FWQ3J-01 Won:false Cancel:false}；末行={GameID:a3-list-MVTNGWFV6NMA3YTLX6YG5FWQ3J-02 Won:true Cancel:false}
+    pagination_observation_test.go:51: 条数=2，偏移=2：返回 2 行，切片为空引用=false，错误=<nil>
+    pagination_observation_test.go:53: 首行={GameID:a3-list-MVTNGWFV6NMA3YTLX6YG5FWQ3J-03 Won:false Cancel:true}；末行={GameID:a3-list-MVTNGWFV6NMA3YTLX6YG5FWQ3J-04 Won:true Cancel:false}
+    pagination_observation_test.go:51: 条数=50，偏移=0：返回 50 行，切片为空引用=false，错误=<nil>
+    pagination_observation_test.go:53: 首行={GameID:a3-list-MVTNGWFV6NMA3YTLX6YG5FWQ3J-01 Won:false Cancel:false}；末行={GameID:a3-list-MVTNGWFV6NMA3YTLX6YG5FWQ3J-50 Won:true Cancel:false}
+    pagination_observation_test.go:51: 条数=1，偏移=50：返回 1 行，切片为空引用=false，错误=<nil>
+    pagination_observation_test.go:53: 首行={GameID:a3-list-MVTNGWFV6NMA3YTLX6YG5FWQ3J-51 Won:false Cancel:true}；末行={GameID:a3-list-MVTNGWFV6NMA3YTLX6YG5FWQ3J-51 Won:false Cancel:true}
+    pagination_observation_test.go:51: 条数=2，偏移=51：返回 0 行，切片为空引用=false，错误=<nil>
+    pagination_observation_test.go:51: 条数=51，偏移=0：返回 0 行，切片为空引用=true，错误=分页参数不合法
+    pagination_observation_test.go:51: 条数=0，偏移=0：返回 0 行，切片为空引用=true，错误=分页参数不合法
+    pagination_observation_test.go:51: 条数=2，偏移=-1：返回 0 行，切片为空引用=true，错误=分页参数不合法
+    pagination_observation_test.go:43: 清理本批次测试数据：51 行
+--- PASS: TestObserveMatchPagination (0.04s)
+PASS
+ok  	github.com/siyad01/multiplayer-terminal-games/cmd/mineserver	0.874s
+退出码：0
+已确认 13306 无监听。
+单独运行的 Go 语法例子：go run <仓库外临时目录>/query-example.go
+示例请求：GET /preview?copies=2
+从网址读到："2"（string）
+转换之后：2（int），错误：<nil>

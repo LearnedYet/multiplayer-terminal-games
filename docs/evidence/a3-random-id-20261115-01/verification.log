@@ -1,0 +1,11 @@
+2026-11-15 America/Los_Angeles; user saved core ID edit; AI read-only review and validation
+GOWORK=off; caches outside repository; no dependency changes
+COMMAND: go version
+go version go1.27.3 windows/amd64
+COMMAND: go test -mod=readonly ./internal/minesweeper -count=1 -v -timeout=30s
+test exit=0
+COMMAND: go build -mod=readonly -o C:\Users\c8618\AppData\Local\GoA\artifacts\a3-random-id-20261115-01\mineserver.exe ./cmd/mineserver
+build exit=0
+Go source files=21; hash differences=0
+package tests: PASS=14 FAIL=0 SKIP=0; build exit=0
+No new core assertions, full-suite tests, database settlement tests, race run or network smoke in this batch. Existing package tests do not call production Loop and do not prove cross-restart uniqueness; generation placement checked statically.

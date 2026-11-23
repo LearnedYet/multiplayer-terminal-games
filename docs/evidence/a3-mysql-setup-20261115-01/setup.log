@@ -1,0 +1,13 @@
+A3 approved local MySQL setup; 2026-11-15 America/Los_Angeles
+source=https://dev.mysql.com/downloads/mysql/8.4.html
+download=https://dev.mysql.com/get/Downloads/MySQL-8.4/mysql-8.4.13-winx64.zip
+bytes=281154912
+officialMD5=7b94489d5524dea9b27097068bea25a8
+actualMD5=7b94489d5524dea9b27097068bea25a8
+localSHA256=E9CD98B1D23F122987B1AFCA26AD942EFEC5891481103D48AE3CDE237FA3EA54
+download curl exit=0; MD5 matched official HTTPS page; SHA256 retained as local fingerprint, not an independently published signature
+COMMAND: tar.exe -xf verified archive -C approved local directory
+extract exit=0
+COMMAND: mysqld --no-defaults --basedir=<local binary> --datadir=<local data> --initialize --console; exit=0; temporary password output retained only in local private directory
+COMMAND: Start-Process mysqld --defaults-file=<approved local my.ini> -WindowStyle Hidden; pid=48564
+COMMAND: mysql --defaults-file=<local temporary bootstrap config> --connect-expired-password --batch < generated credential/database setup on stdin; exit=0; no SQL or passwords copied to repository

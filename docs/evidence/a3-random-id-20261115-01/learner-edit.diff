@@ -1,0 +1,27 @@
+diff --git a/internal/minesweeper/loop.go b/internal/minesweeper/loop.go
+index 69d3782..7e77c2c 100644
+--- a/internal/minesweeper/loop.go
++++ b/internal/minesweeper/loop.go
+@@ -5,7 +5,7 @@
+ package minesweeper
+ 
+ import (
+-	"fmt"
++	cryptorand "crypto/rand"
+ 	"log"
+ 	"math/rand"
+ 	"time"
+@@ -43,10 +43,10 @@ func Loop(
+ 	gameOverCh chan<- uint8,
+ ) {
+ 	var results []MatchResult
+-	var matchNumber uint64
++
+ 	for {
+-		matchNumber++
+-		matchID := fmt.Sprintf("mine - %d", matchNumber)
++
++		matchID := cryptorand.Text()
+ 		done, result := runOnce(
+ 			mineCh, joinCh, leaveCh, startCh, setModeCh,
+ 			stopCh, broadcastCh, gameOverCh, matchID,

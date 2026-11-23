@@ -1,0 +1,39 @@
+A3 local environment verification; 2026-11-15; no gameplay result persistence implemented
+COMMAND: Connect-MySQL.ps1 -Sql <version/current user/database/port/bind address/tables>
+version	authenticated_account	learning_database	port	bind_address
+8.4.13	a3_dev@127.0.0.1	go_a_learning	13306	127.0.0.1
+COMMAND: inspect listeners owned by approved mysqld process
+
+COMMAND: Stop-MySQL.ps1
+MySQL shutdown request completed.
+after shutdown: port 13306 has no listener
+COMMAND: Start-MySQL.ps1 (restart same data directory)
+First restart failed: Start-MySQL.ps1 reported not ready; server log reports ibdata1 must be writable before previous Shutdown complete. Stop helper returned after mysqladmin/port closure, before old server process exit. Initial Start-Process PID is a launcher PID and listener inspection filtered by it produced no rows; corrected verification will use actual listener/process and mysqld.pid.
+RETRY after helper correction; no data deletion, reinitialization, forced termination, service or firewall changes
+COMMAND: Start-MySQL.ps1
+MySQL ready at 127.0.0.1:13306; server PID=46532
+COMMAND: Connect-MySQL.ps1 -Sql <version/account/database/port/bind/table count>
+version	authenticated_account	learning_database	port	bind_address
+8.4.13	a3_dev@127.0.0.1	go_a_learning	13306	127.0.0.1
+business_table_count
+0
+listener=127.0.0.1:13306; ownerPID=46532; executable=C:\Users\c8618\AppData\Local\GoA\mysql\mysql-8.4.13-winx64\bin\mysqld.exe
+
+LocalAddress LocalPort OwningProcess
+------------ --------- -------------
+127.0.0.1        13306         46532
+
+
+COMMAND: Stop-MySQL.ps1 (wait for actual server process exit)
+MySQL server PID=46532 exited normally.
+COMMAND: Start-MySQL.ps1 (restart same data)
+MySQL ready at 127.0.0.1:13306; server PID=12440
+COMMAND: Connect-MySQL.ps1 -Sql <version/account/database and empty schema after restart>
+version	authenticated_account	learning_database
+8.4.13	a3_dev@127.0.0.1	go_a_learning
+business_table_count
+0
+COMMAND: Stop-MySQL.ps1 (leave stopped)
+MySQL server PID=12440 exited normally.
+final: port 13306 has no listener; actual server process exited; no business tables; Go tests/build not executed
+credential scan: generated passwords absent from archived setup files

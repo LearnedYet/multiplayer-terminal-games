@@ -502,6 +502,134 @@ go run ./cmd/client -name bob
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | | | | | | | | |
 
+## 接续准备与状态勘误（2026-11-15）
+
+- AI 读取项目/共享规则、当前状态及旧路线，核对本地 git 状态：HEAD 为 702f469，准备前工作区干净。未联网重查 GitHub，未重跑测试或构建；43 项通过仍指 2026-11-14 验收批次。
+- 发现 CURRENT_STATE 末尾仍保留“A2 尚未完整交付”的旧待办，与文首完成结论矛盾；本次仅修正文档并标明 A3 为待确认提案，不修改历史验收记录。该勘误不计为用户业务代码贡献。
+- 静态调查确认当前 Loop 内对局计数器重启后重新计数，需要在持久化设计中明确跨重启标识。Get-Command 初查未在 PATH 找到 docker/mysql；未检查数据库连接、未安装组件，不能据此认定服务不存在。
+- 本次未修改业务代码、核心断言、依赖或共享文件，未开启新阶段或执行提交推送；核心实现继续由用户按 TODO 保存后审查。
+
+## A3 开启与只读调查（2026-11-15）
+
+- 用户在 A3 范围提案后明确回复“同意”，开启 MySQL 结算与查询；随后说明没有现成 MySQL，先由 AI 提出本机方案。核心实现及断言继续由用户按 TODO 填写，不把方案准备记成已完成业务功能。
+- AI 重新读取共享/项目规则和当前状态，追踪 main → Loop → runOnce → SnapshotResult → 内存结果列表，确认重启会丢失结果并重新从 1 计数；未代写核心代码、SQL 或断言。
+- 环境检查命令与结果见[原始记录](evidence/a3-preparation-20261115-01/environment.log)：Go 1.27.3 Windows amd64，PATH 未找到 MySQL/Docker 命令，相关服务为 0，3306/13306 监听为 0，WSL 未安装。初次直接执行 wsl 输出编码乱码，后使用 UTF-16 捕获取得可读结果及退出 1；原始记录保留的是后次可读捕获。VC 运行库两项 DLL 存在仅为文件检查，不代表已实际启动数据库。
+- 建议使用官方 Windows ZIP 本地实例及标准库随机编号；建议、备选与代价记入 CURRENT_STATE，尚未获方案批准或实施。未下载/安装软件、未操作现有凭据、未修改依赖、未启动数据库；未执行 Go 测试或构建、未提交推送。
+
+## A3 本机 MySQL 环境准备（2026-11-15）
+
+- 用户明确批准官方 MySQL 8.4 Windows ZIP 本地方案及标准库随机编号。AI 负责环境准备和辅助脚本，核心编号、SQL、业务代码及断言未代写；环境操作不计为用户独立业务实现。
+- 官方 HTTPS 下载页与下载地址、包大小及校验保留于[setup.log](evidence/a3-mysql-setup-20261115-01/setup.log)：MySQL Community Server 8.4.13 Windows x64 ZIP，281154912 字节；MD5 与官方页面一致，另保存本地 SHA256 指纹，没有把本地指纹说成独立发布签名。下载、解压、mysqld --version 和 --initialize 执行成功。
+- 运行目录 C:\Users\c8618\AppData\Local\GoA\mysql；my.ini 仅监听 127.0.0.1:13306，关闭 MySQL X 监听，未创建服务或改永久 PATH/防火墙。初始化输出及新生成的 root/学习密码只在仓库外 private 目录；文档与证据不含口令。创建空学习库 go_a_learning、账号 a3_dev@127.0.0.1，仅赋该学习库权限，未创建业务表或接入 Go 驱动。
+- 首次启停核验失败已保留：mysqladmin shutdown 返回且端口关闭后，旧进程仍在释放数据文件，立即重启报 ibdata1 must be writable。AI 修正 Stop-MySQL.ps1 等待 mysqld.pid 对应进程正常退出；首次监听调查误用 Start-Process 启动器 PID 没有取得监听行，后续按实际端口归属核验并校对可执行文件。没有删除/重新初始化数据或强制杀进程。见[首次服务日志](evidence/a3-mysql-setup-20261115-01/server-error-first-attempt.log)、[原 Stop 脚本](evidence/a3-mysql-setup-20261115-01/Stop-MySQL-before.ps1)。
+- 修正后[verification.log](evidence/a3-mysql-setup-20261115-01/verification.log)记录学习账号实际连接，VERSION=8.4.13，CURRENT_USER=a3_dev@127.0.0.1，库名 go_a_learning，端口/绑定正确且 mysqld 实际仅有一个本地监听；正常停止后重启同一数据目录，账号及空库仍可用、业务表数量为 0，最终正常停止且 13306 无监听。完整日志包含首次失败和后续通过，不将空库重启核验当作 A3 对局持久化验收。
+- 辅助脚本及无口令配置副本在本批次，实际使用仓库外的 Start-MySQL.ps1、Connect-MySQL.ps1、Stop-MySQL.ps1；客户端凭据文件不归档。本轮未修改 cmd/internal、go.mod/go.sum、LICENSE 或共享文件，未运行 Go 测试/构建、未提交推送。下一步等待用户保存 Loop 编号 TODO 后审查。
+
+## A3 随机对局编号小步（2026-11-15）
+
+- 用户按定位、TODO 骨架及标准库文档提示，保存 internal/minesweeper/loop.go：将 fmt 导入改成 cryptorand 别名、移除 Loop 内计数器，在每轮 runOnce 前生成本局随机编号。AI 读取真实 diff，确认生成位置及 Loop → runOnce → NewGame → MatchId → SnapshotResult.GameID 的传递，未代写或调整核心代码，未修改核心断言。用户改动副本见[learner-edit.diff](evidence/a3-random-id-20261115-01/learner-edit.diff)。
+- 设计理由：原 mine - N 在重启后重复，不适合直接作为持久化记录唯一标识；本步改用标准库随机字符串，每局生成一次，保留现有 string 字段和结果链路。同局保存应沿用原编号。随机碰撞概率极低，但数据库唯一约束尚未实现，不宣称绝对唯一。
+- Go 1.27.3 / Windows amd64，进程 GOWORK=off；实际命令 go test -mod=readonly ./internal/minesweeper -count=1 -v -timeout=30s 为 14 PASS、0 FAIL、0 SKIP、退出 0；go build -mod=readonly -o C:\Users\c8618\AppData\Local\GoA\artifacts\a3-random-id-20261115-01\mineserver.exe ./cmd/mineserver 退出 0。21 个 Go 源文件验证前后哈希差异为 0，go.mod/go.sum/LICENSE 与 HEAD 一致。见[命令及边界](evidence/a3-random-id-20261115-01/verification.log)、[包测试](evidence/a3-random-id-20261115-01/package-tests.log)、[构建输出](evidence/a3-random-id-20261115-01/build.log)及同目录哈希记录。
+- 验证边界：既有包测试未调用生产 Loop，生成位置为静态审查，不把包通过说成跨进程唯一性实测；未新增随机数重复抽样练习，未运行全库、Race、数据库业务或联机验收。MySQL 本轮未启动，Go 尚未接入数据库。学习归属为指导下填写 API 调用和局部修改，不据此认定独立完成持久化模块。
+- 下一步先由用户依据已有结构体整理整局/参与者字段及其关联，再确认表结构并带写 SQL；本步未提交或推送。
+
+## A3 持久化字段归属讨论（2026-11-15）
+
+- 用户根据已有 MatchResult / MinePlayer，用中文列出整局 ID、胜利、取消，以及参与者名字、座位号、得分、旗子和离开状态，并主动指出用 game id 将参与者关联到本局。记录为给定结构下的字段归类回答，不记为已实现 SQL 或独立设计整个数据库。
+- AI 静态核对 Scores 返回 Reveals，说明“得分”在本项目为翻开格数；持久化保存现有 Flags 结算值。Flag 撤旗计数归属的静态疑点另记 CURRENT_STATE R8，不在当前任务展开修复或增加练习。
+- 提出两表及主键/联合主键/外键方案，同时说明单表 JSON 备选及取舍，尚待用户确认。具体 SQL、核心断言和数据库表均未写入；数据库本轮未启动，未执行 Go 测试或构建。依据与下一步见 CURRENT_STATE 的 A3 当前任务。
+
+## A3 两表方案确认与 SQL 骨架（2026-11-15）
+
+- 用户在两表及主键/联合主键/外键提案后明确回复“同意”，采用 match_results 和 match_players。字段归属由用户根据已有结构归类，数据库方案和命名由 AI 提出、用户确认，不记为用户独立数据库设计。
+- AI 新建 db/schema.sql 的对局表 TODO 骨架，只提供列名、类型/非空提示、主键占位与辅助表尾设置；核心字段声明和主键列仍由用户填写保存。当前只有骨架，不可执行，不计为完整建表贡献。
+- 本步教学集中于列声明的组成、VARCHAR/BOOLEAN、NULL 与 false 的不同及主键用途；参与者表、联合主键 SQL 和事务留到后续。尚未观察到用户实际 SQL 编辑，不宣称已掌握或已建表。
+- 本轮未启动数据库、未执行 schema.sql、Go 测试或构建，未修改 Go 业务源码、依赖、许可证或共享文件，未提交推送；仅核对 TODO 与文档状态及 git diff --check。后续以用户保存文件和真实数据库结果为准。
+
+## A3 用户完成对局表 SQL 并建表核验（2026-11-18）
+
+- 用户根据 TODO 填写并保存 match_results 的 `game_id`、`won`、`canceled` 的类型和非空约束，设置 `game_id` 为主键；AI 提供骨架和表尾配置，读取保存文件并执行核验。记为指导下完成首张表的字段和约束，不记为独立设计数据库。
+- Windows / MySQL 8.4.13：启动本机实例，确认 `go_a_learning` 原来无业务表；以 `Connect-MySQL.ps1 -Sql (Get-Content -Raw -Encoding UTF8 -LiteralPath db/schema.sql)` 执行当时保存的建表 SQL，客户端退出 0。`SHOW CREATE TABLE match_results` 确认三列必填、`game_id` 主键、InnoDB 和 `utf8mb4_bin`。建表后仅列出 match_results，随后正常停机并确认 13306 无监听。实际命令、文件哈希及原始结果见[本批次](evidence/a3-match-results-20261118-01/verification.log)。
+- 核验后 AI 添加参与者表 TODO，日志中的文件哈希对应添加骨架之前的 SQL。参与者表、外键、事务、Go 接入及重启后结果数据查询均未验证；没有重跑 Go 测试或构建。
+
+## A3 用户完成参与者表字段和联合主键（2026-11-18，静态审查）
+
+- 用户按 TODO 在 db/schema.sql 填写 match_players 的六列和联合主键。AI 读取保存后的 SQL，确认类型、非空约束和 `(game_id, player_id)` 均符合已确认方案。用户允许直接修正明显笔误，本次未发现；AI 只更新了外键 TODO 和状态说明，未改用户的 SQL 声明。
+- 本步记录为指导下完成字段声明和联合主键。外键待用户补齐，未启动 MySQL、未创建第二张表、未执行 Go 测试或构建。
+
+## A3 用户完成外键并核验参与者表（2026-11-18）
+
+- 用户按 TODO 保存 `match_players.game_id` 指向 `match_results.game_id` 的外键。AI 按用户授权移除外键括号中列名后的多余逗号，整理缩进和文件头说明；关联列、目标表与目标列均由用户填写。记为指导下完成两表建表 SQL。
+- Windows / MySQL 8.4.13：使用 `Connect-MySQL.ps1 -Sql` 只执行从 db/schema.sql 提取的 `CREATE TABLE match_players`，客户端退出 0。`SHOW CREATE TABLE match_players` 核对联合主键与外键，`SHOW TABLES` 确认两张表都存在；本机实例正常停止，13306 无监听。[实际命令、SQL 与原始输出](evidence/a3-match-players-20261118-01/verification.log)。
+- 仅核验建表和数据库中实际存在的约束定义，未插入对局数据、未验证事务或重启后查询，未执行 Go 测试或构建。
+
+## A3 MySQL 驱动与连接探测准备（2026-11-18）
+
+- 用户同意新增 MySQL 驱动及所需间接依赖。AI 执行 `go get github.com/go-sql-driver/mysql@v1.10.1`，最终只加入该驱动与 `filippo.io/edwards25519 v1.2.0` 及其校验和；现有版本和 Go 声明未变。首次访问 sum.golang.org 超时，改用进程级 `GOPROXY=https://goproxy.cn`，保留 `GOSUMDB=sum.golang.org`，重试成功。
+- Go 1.27.3 / Windows amd64 / GOWORK=off：`go list -mod=readonly -m` 核对版本，驱动和 `./cmd/mineserver` 的 `go build -mod=readonly` 均退出 0。产物在仓库外，命令、失败和重试输出见[本批次](evidence/a3-mysql-driver-20261118-01/verification.log)。
+- AI 在服务入口放置连接探测 TODO。该函数及调用由用户后续填写，本步不记为用户代码贡献；未验证 Go 与 MySQL 的实际连接，未执行 Go 测试。
+
+## A3 用户实现 Go 启动连接探测（2026-11-18）
+
+- 用户按 TODO 在 cmd/mineserver/main.go 编写启动配置分支和 `probeMySQL`，包含 `sql.Open`、3 秒超时的 `PingContext` 及资源释放。AI 补上遗漏的空白导入以注册驱动、将 go.mod 标记改为直接依赖，清理已完成的 TODO。记录为指导下完成启动探测，尚未实现持久化。
+- Go 1.27.3 / Windows amd64 / GOWORK=off：`go build -mod=readonly -o <仓库外产物> ./cmd/mineserver` 退出 0。用同一产物启动三次，只在相应子进程设置学习库 DSN：MySQL 已启动时监听 8081；MySQL 停止时记录连接拒绝、进程退出 1、8081 无监听；未配置 DSN 时即使 MySQL 停止也监听 8081。启动场景由验证外壳观察后停止，MySQL 通过既有脚本正常关闭，13306 和 8081 均无监听。[原始输出](evidence/a3-mysql-probe-20261118-01/verification.log)。
+- 仅验收启动连接与失败处理，未执行 Go 测试套件、联机对局、数据库写入或事务测试。
+
+## A3 同步结算方案确认及事务骨架（2026-11-18）
+
+- 用户同意在统一结算点同步写库，使用同一事务保存两张表；写入失败保留内存结果、记对局编号和错误、不自动重试。重复编号由主键拒绝，旧结果保持不变。
+- AI 新建 `cmd/mineserver/match_store.go`，只放独立保存函数的签名、TODO 和未实现返回值。事务、两条 SQL 和核心断言仍待用户编写；未接入 Loop，不算已实现持久化。
+- Go 1.27.3 / Windows amd64 / GOWORK=off：`go build -mod=readonly -o <仓库外产物> ./cmd/mineserver` 退出 0。[原始记录](evidence/a3-match-write-scaffold-20261118-01/verification.log)。未启动数据库、执行写入或运行测试。
+
+## A3 用户完成独立事务保存（2026-11-19）
+
+- 用户按中文 TODO 填写 `saveMatchResult`：开启事务并延迟回滚，参数化写对局和参与者，传播写入错误，最后返回提交结果。AI 审查实际文件和参数映射，提供临时观察外壳，未代写核心代码或正式断言。记为指导下完成事务保存函数。
+- Go 1.27.3 / Windows amd64 / MySQL 8.4.13 / GOWORK=off：`mineserver` 定向构建通过。临时 overlay 的 `TestObserveMatchSettlement` 调用真实保存函数并打印数据库观察值：首次保存 1 局 2 人且字段匹配；同编号换内容提交返回 `match_results.PRIMARY` 1062，旧内容和行数不变；第二位玩家编号冲突返回 `match_players.PRIMARY` 1062，这一局两表均无残留。观察脚本退出 0，结论来自核对输出。诊断只删除本次生成编号的数据；MySQL 正常停止，13306 无监听。[当前版本原始记录](evidence/a3-match-write-20261119-02/verification.log)。
+- [首次观察](evidence/a3-match-write-20261119-01/verification.log)的业务观察结果相同，但末尾检测到保存文件变动，整条核验命令退出 1；据此对当前文件重新构建及观察，第二批源码前后哈希一致。临时外壳与产物在仓库外。未跑全库测试、联机或重启查询，尚未接入 Loop。
+
+## A3 用户完成数据库句柄交接（2026-11-19）
+
+- 用户调整 `probeMySQL` 双返回值，探测失败时关闭句柄，成功时交给 `main` 管理；首次保存成功分支误返回空句柄，经提示后由用户改正。AI 审查、提供临时观察外壳及接线 TODO，不代写核心逻辑。
+- Windows amd64 / Go 1.27.3 / MySQL 8.4.13 / GOWORK=off：`go build -mod=readonly -o <仓库外产物> ./cmd/mineserver` 退出 0。临时 overlay 在 MySQL 停止时观察到空句柄和连接错误；启动后观察到非空句柄、无错误，通过该句柄执行 `SELECT DATABASE()` 得到 `go_a_learning`。MySQL 正常停止；验证时 `main.go` 前后哈希一致。[原始记录](evidence/a3-mysql-handle-20261119-01/verification.log)。本步未写入数据、未跑全库测试或验证正常停机时 Loop 等待逻辑。
+
+## A3 用户接入游戏循环并验证取消结算入库（2026-11-21）
+
+- 用户在 `cmd/mineserver/main.go` 和 `internal/minesweeper/loop.go` 连接已有事务保存函数：启动时给有数据库配置的服务绑定 3 秒超时的回调，`Loop` 在保存内存结果后同步写库，错误记到日志；正常停机等待 `Loop` 结束。AI 审查发现旧启动调用会让两套循环争用通道，用户定位并删除。业务接线记为指导下完成，AI 只做观察和核验。
+- Windows amd64 / Go 1.27.3 / MySQL 8.4.13 / GOWORK=off：定向 `go build -mod=readonly` 退出 0，`go test -mod=readonly ./cmd/mineserver ./internal/minesweeper -count=1 -timeout=30s` 两个包通过。首次临时观察工具因未使用的导入编译失败；移除该导入后复用同一构建产物，业务源码哈希未变。见[构建、包测试与首次观察](evidence/a3-loop-settlement-20261121-01/verification.log)。
+- [第二批观察](evidence/a3-loop-settlement-20261121-02/verification.log)使用临时 overlay 驱动真实服务和两条本机 WebSocket 连接。Cooperative / Easy 开局后双方退出，服务重新进入大厅；原始 SQL 查询观察到该编号 `won=false`、`canceled=true` 和两名 `left_early=true` 的玩家。工具只打印业务值，未新增用户核心断言；服务由工具停止，未验证信号触发的正常停机。清理仅删除测试编号的数据，MySQL 正常关闭，8081/13306 无监听。未联机核验胜负结算、运行中连接断开后的继续开局、重启查询、全库测试或构建。
+
+## A3 用户完成按编号读取战绩详情（2026-11-21）
+
+- 用户按中文 TODO 编写 `loadMatchResult`：以 `QueryRowContext` 查对局，以 `QueryContext` 查玩家，用参数传对局号并按 `player_id` 升序；逐行 `Scan`、关闭行集并传播错误。AI 按已定表结构修正列名笔误 `player_name` → `name`，未改查询结构。记为指导下完成详情查询函数。
+- Windows amd64 / Go 1.27.3 / MySQL 8.4.13 / GOWORK=off：`go build -mod=readonly -o <仓库外产物> ./cmd/mineserver` 退出 0。临时 overlay 的 `TestObserveMatchDetail` 调用真实保存和查询函数，输出一局及两名玩家的输入和读取值；对局状态、中文名字、分数、旗子和离开标记一致，玩家输入顺序 9、2，查询返回 2、9；未知编号的错误符合 `sql.ErrNoRows`。核对输出后清理一条对局和两条玩家数据，MySQL 正常停止。见[命令和原始输出](evidence/a3-match-detail-20261121-01/verification.log)。本次未运行全库测试，也未接查询路由或验证重启后查询。
+
+## A3 用户完成战绩分页查询（2026-11-21）
+
+- 用户按中文 TODO 写 `listMatchResults` 的分页参数检查、按 `game_id` 排序的参数化 `LIMIT`/`OFFSET`、逐行 `Scan` 和错误传播。AI 提供摘要类型、签名、讲解和临时观察外壳，未修改用户实现。记为指导下完成分页查询函数。
+- Windows amd64 / Go 1.27.3 / MySQL 8.4.13 / GOWORK=off：`mineserver` 定向构建退出 0。临时 overlay 的 `TestObserveMatchPagination` 倒序插入 51 条诊断记录；每页 2 条时，前两页依次读到编号后缀 01/02 和 03/04；请求 50 条得到 01–50，偏移 50 可读到 51；偏移 51 得到非 nil 空切片，无错误。页大小 51、0 和负偏移均返回参数错误。51 条诊断记录已清理，实例正常停止，13306 无监听，源码哈希一致。[原始记录](evidence/a3-match-pagination-20261121-01/verification.log)。未接 HTTP 查询入口，未跑全库测试或重启查询。
+
+## A3 战绩详情 HTTP 处理函数（2026-11-21）
+
+- 用户在 `cmd/mineserver/match_http.go` 按 TODO 实现编号读取、校验、查询和 JSON 响应。审查发现草稿的两个 `err != nil` 会把所有查询错误都判成 404；用户将第一处改为判断 `sql.ErrNoRows`，其他错误走 500。AI 提供骨架，修正 `log.Printf(err.Error())` 为固定中文格式串加 `%v`，并在服务入口准备路由注册 TODO。
+- Windows amd64 / Go 1.27.3 / GOWORK=off：`go build -mod=readonly -o <仓库外产物> ./cmd/mineserver` 退出 0；修正日志前 `go test -mod=readonly ./cmd/mineserver -count=1 -timeout=30s` 因 `non-constant format string in call to log.Printf` 退出 1，修正后加 `-v` 重跑，既有 `TestMineCursorUsesConnectionIdentity` 通过，退出 0。详情路由尚未注册，本次未实测 HTTP 或 MySQL。
+
+## A3 战绩详情路由接线（2026-11-23）
+
+- 用户按提示注册 `GET /matches/{gameID}`，由 `main` 在数据库连接可用时登记。初次把 `/ws` 的 `mineWSHandler` 用于详情，定向构建因参数不匹配退出 1。用户根据调用入口的解释改用 `matchDetailHandler(db)`。AI 提供定位、审查和分页处理函数骨架。
+- Windows amd64 / Go 1.27.3 / GOWORK=off：修正后 `go build -mod=readonly -o <仓库外产物> ./cmd/mineserver` 退出 0；`go test -mod=readonly ./cmd/mineserver -count=1 -v -timeout=30s` 既有 `TestMineCursorUsesConnectionIdentity` 通过，退出 0。带本机 MySQL 的详情 HTTP 验证和不带数据库配置的冒烟脚本都在执行前被自动策略拦截，未获得 HTTP 响应；此处的通过结果仅涉及构建和已有包测试。
+
+## A2 编号复用回归教学演示（2026-11-23）
+
+- 按用户要求重跑既有 `TestRunOnceRejectsReusedConnection` 并为实际输出节选加圈注。同一个测试对 2026-11-13 的旧 `loop.go` 快照运行时，通过仓库外临时 overlay 观察到 `lateAccepted=false`、`endedEarly=true`，在用户编写的「对局在离开前结束了」断言失败，退出 1。对当前代码运行时，`lateAccepted=false`、`endedEarly=false`，结果包含 Alice、Bob，且 Alice 的 `Flags=1`，退出 0。测试与当前实现文件前后哈希一致。[圈注图](evidence/a2-reuse-walkthrough-20261123-01/annotated.png) · [修复前日志](evidence/a2-reuse-walkthrough-20261123-01/before.log) · [当前日志](evidence/a2-reuse-walkthrough-20261123-01/current.log) · [执行环境](evidence/a2-reuse-walkthrough-20261123-01/environment.log)
+
+## A3 分页存储层复测与教学演示（2026-11-23）
+
+- AI 使用既有临时 `TestObserveMatchPagination` 在本机 MySQL 8.4.13 重跑用户实现的 `listMatchResults`，退出 0。`limit=2` 时偏移 0 返回编号后缀 01/02，偏移 2 返回 03/04。清理 51 条测试数据后正常停止 MySQL，13306 无监听，查询源码前后哈希一致。圈注图同时展示单独运行的 Go URL 参数转换例子，分页 HTTP 调用仍待实现。[圈注图](evidence/a3-pagination-walkthrough-20261123-01/annotated.png) · [命令与原始输出](evidence/a3-pagination-walkthrough-20261123-01/verification.log)
+
+## A3 暂停进度快照（2026-11-23）
+
+- 按用户要求保存当前进度，包括已验证的事务保存与查询层、用户已完成的分页参数与错误状态处理，以及未完成的 HTTP 响应和路由。推送前 `go test -mod=readonly ./cmd/mineserver -count=1 -v -timeout=30s` 在编译阶段因 `page` 未使用退出 1。A3 最终验收待续。[核对记录](evidence/a3-checkpoint-20261123-01/verification.log)
+
 ## 个人贡献索引
 
 以下只记录实际发生的贡献与验证，并标明指导与独立修改的范围；Phase 0 文档成果仍按上面的事实说明归属。

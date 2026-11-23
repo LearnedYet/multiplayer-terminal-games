@@ -1,0 +1,28 @@
+A3 preparation; 2026-11-15; read-only probes; no credentials accessed
+COMMAND: git rev-parse HEAD; git status --short
+702f46982aaf0e00e8c60392f95b48fa8f65f665
+ M docs/CURRENT_STATE.md
+ M docs/EVIDENCE.md
+?? docs/evidence/a3-preparation-20261115-01/
+COMMAND: go version
+go version go1.27.3 windows/amd64
+COMMAND: Get-Command docker,mysql,mysqld,wsl -ErrorAction SilentlyContinue
+
+Name    Source
+----    ------
+wsl.exe C:\Windows\system32\wsl.exe
+
+
+COMMAND: Get-Service filtered by mysql|maria|docker
+matching services=0
+COMMAND: Get-NetTCPConnection listeners on 3306/13306
+matching listeners=0
+COMMAND: wsl --list --verbose (capture UTF-16 output)
+exit=1
+
+未安装适用于 Linux 的 Windows 子系统。可通过运行 “wsl.exe --install” 进行安装。
+有关详细信息，请访问 https://aka.ms/wslinstall
+
+COMMAND: inspect System32 VC runtime DLLs (presence only)
+vcruntime140.dll exists=True
+msvcp140.dll exists=True

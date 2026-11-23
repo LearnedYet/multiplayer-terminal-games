@@ -1,0 +1,33 @@
+Thread: 01a1d8b6-cd1f-7ff3-bdb7-a05adcfc61a4
+Environment: Windows, local MySQL on 127.0.0.1:13306, go_a_learning
+Source: C:\Dev\Go\A\db\schema.sql
+SHA256: 3945E5ACB732C80DA7018433CAC8D8D267DDA0114BB5DF4B4777BCA7769F736F
+MySQL ready at 127.0.0.1:13306; server PID=22048
+Connect-MySQL.ps1 -Sql "SELECT VERSION(), DATABASE(); SHOW TABLES;"
+VERSION()	DATABASE()
+8.4.13	go_a_learning
+Tables_in_go_a_learning
+match_results
+Connect-MySQL.ps1 -Sql <match_players CREATE TABLE extracted from schema.sql>
+CREATE TABLE match_players (
+    game_id VARCHAR(64) NOT NULL,
+    player_id TINYINT UNSIGNED NOT NULL,
+    name VARCHAR(15) NOT NULL,
+    reveals SMALLINT UNSIGNED NOT NULL,
+    flags SMALLINT UNSIGNED NOT NULL,
+    left_early BOOLEAN NOT NULL,
+    PRIMARY KEY (game_id, player_id),
+    FOREIGN KEY (game_id)
+        REFERENCES match_results (game_id)
+) ENGINE = InnoDB
+  DEFAULT CHARACTER SET = utf8mb4
+  COLLATE = utf8mb4_bin;
+DDL client exit code: 0
+Connect-MySQL.ps1 -Sql "SHOW CREATE TABLE match_players; SHOW TABLES;"
+Table	Create Table
+match_players	CREATE TABLE `match_players` (\n  `game_id` varchar(64) COLLATE utf8mb4_bin NOT NULL,\n  `player_id` tinyint unsigned NOT NULL,\n  `name` varchar(15) COLLATE utf8mb4_bin NOT NULL,\n  `reveals` smallint unsigned NOT NULL,\n  `flags` smallint unsigned NOT NULL,\n  `left_early` tinyint(1) NOT NULL,\n  PRIMARY KEY (`game_id`,`player_id`),\n  CONSTRAINT `match_players_ibfk_1` FOREIGN KEY (`game_id`) REFERENCES `match_results` (`game_id`)\n) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin
+Tables_in_go_a_learning
+match_players
+match_results
+MySQL server PID=22048 exited normally.
+Port 13306 no longer listening.

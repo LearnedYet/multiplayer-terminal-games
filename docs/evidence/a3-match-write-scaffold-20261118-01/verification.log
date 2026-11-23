@@ -1,0 +1,6 @@
+Thread: 01a1d8b6-cd1f-7ff3-bdb7-a05adcfc61a4
+Environment: Windows, GOWORK=off
+go version go1.27.3 windows/amd64
+go build -mod=readonly -o C:\Users\c8618\AppData\Local\GoA\artifacts\a3-match-write-scaffold-20261118-01\mineserver.exe ./cmd/mineserver
+build exit code: 0
+Scaffold only; database not started and no writes or tests performed.

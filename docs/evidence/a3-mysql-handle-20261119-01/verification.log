@@ -1,0 +1,28 @@
+Thread: 01a1d8b6-cd1f-7ff3-bdb7-a05adcfc61a4
+Environment: Windows; GOWORK=off; local learning MySQL 127.0.0.1:13306
+go version go1.27.3 windows/amd64
+User source SHA256: 2681568109BC741E327F77133135DC400E0BE26E1953AC081DA35D9DA501E99F
+Temporary observation helper: C:\Users\c8618\AppData\Local\GoA\artifacts\a3-mysql-handle-20261119-01\mysql_handle_observation_test.go
+go build -mod=readonly -o C:\Users\c8618\AppData\Local\GoA\artifacts\a3-mysql-handle-20261119-01\mineserver.exe ./cmd/mineserver
+Build exit code: 0
+Scenario: MySQL off
+go test -mod=readonly -overlay C:\Users\c8618\AppData\Local\GoA\artifacts\a3-mysql-handle-20261119-01\overlay.json ./cmd/mineserver -run '^TestObserveMySQLHandle$' -count=1 -v -timeout=20s
+=== RUN   TestObserveMySQLHandle
+    mysql_handle_observation_test.go:20: probe result: nil handle=true; error=dial tcp 127.0.0.1:13306: connectex: No connection could be made because the target machine actively refused it.
+--- PASS: TestObserveMySQLHandle (0.00s)
+PASS
+ok  	github.com/siyad01/multiplayer-terminal-games/cmd/mineserver	0.961s
+MySQL ready at 127.0.0.1:13306; server PID=46952
+VERSION()	DATABASE()
+8.4.13	go_a_learning
+Scenario: MySQL on
+go test -mod=readonly -overlay C:\Users\c8618\AppData\Local\GoA\artifacts\a3-mysql-handle-20261119-01\overlay.json ./cmd/mineserver -run '^TestObserveMySQLHandle$' -count=1 -v -timeout=20s
+=== RUN   TestObserveMySQLHandle
+    mysql_handle_observation_test.go:20: probe result: nil handle=false; error=<nil>
+    mysql_handle_observation_test.go:29: new query after probe: database=go_a_learning; error=<nil>
+--- PASS: TestObserveMySQLHandle (0.00s)
+PASS
+ok  	github.com/siyad01/multiplayer-terminal-games/cmd/mineserver	0.839s
+MySQL server PID=46952 exited normally.
+Port 13306 no longer listening.
+User source unchanged.

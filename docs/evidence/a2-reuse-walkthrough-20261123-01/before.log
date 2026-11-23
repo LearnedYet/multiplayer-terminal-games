@@ -1,0 +1,15 @@
+go test -mod=readonly -overlay <临时 overlay.json> ./internal/minesweeper -run ^TestRunOnceRejectsReusedConnection$ -count=1 -v -timeout=15s
+=== RUN   TestRunOnceRejectsReusedConnection
+2026/11/23 01:57:01 minesweeper: lobby open
+2026/11/23 01:57:01 minesweeper: starting mode=1 diff=easy players=2
+2026/11/23 01:57:01 minesweeper: board 9x9 mines=10
+2026/11/23 01:57:01 minesweeper: player 0 left
+2026/11/23 01:57:01 minesweeper: player 1 left
+2026/11/23 01:57:01 游戏已结束 对局记录为:fixed-roster
+    loop_test.go:13: lateAccepted=false endedEarly=true result=&{GameID:fixed-roster Won:false Cancel:true PlayerResult:[{ID:0 Name:Alice Reveals:0 Flags:1 Left:true} {ID:1 Name:Bob Reveals:0 Flags:0 Left:true}]}
+    loop_test.go:21: 对局在离开前结束了
+--- FAIL: TestRunOnceRejectsReusedConnection (0.01s)
+FAIL
+FAIL	github.com/siyad01/multiplayer-terminal-games/internal/minesweeper	0.350s
+FAIL
+退出码：1

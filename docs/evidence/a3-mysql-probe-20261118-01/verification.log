@@ -1,0 +1,26 @@
+Thread: 01a1d8b6-cd1f-7ff3-bdb7-a05adcfc61a4
+Environment: Windows; GOWORK=off; local training MySQL, 127.0.0.1:13306
+go version go1.27.3 windows/amd64
+go build -mod=readonly -o C:\Users\c8618\AppData\Local\GoA\artifacts\a3-mysql-probe-20261118-01\mineserver.exe ./cmd/mineserver
+build exit code: 0
+Scenario: Configured; MySQL off
+mineserver exit code: 1
+Port 8081 remained unavailable after the startup failure.
+2026/11/18 03:21:42 mineserver: mysql ping failed: dial tcp 127.0.0.1:13306: connectex: No connection could be made because the target machine actively refused it.
+Scenario: DSN absent; MySQL off
+Port 8081 LISTEN confirmed for mineserver PID=12748.
+Harness stopped mineserver after observation.
+2026/11/18 03:21:42 hub started
+2026/11/18 03:21:42 minesweeper: lobby open
+2026/11/18 03:21:42 minesweeper server listening on :8081
+2026/11/18 03:21:42 connect: go run cmd/client/main.go -name yourname
+MySQL ready at 127.0.0.1:13306; server PID=18456
+Scenario: Configured; MySQL on
+Port 8081 LISTEN confirmed for mineserver PID=33964.
+Harness stopped mineserver after observation.
+2026/11/18 03:21:44 minesweeper: lobby open
+2026/11/18 03:21:44 minesweeper server listening on :8081
+2026/11/18 03:21:44 connect: go run cmd/client/main.go -name yourname
+2026/11/18 03:21:44 hub started
+MySQL server PID=18456 exited normally.
+Ports 13306 and 8081 no longer listening.

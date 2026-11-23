@@ -1,11 +1,11 @@
 // internal/minesweeper/loop.go
-// Minesweeper game loop — event-driven (no ticker).
-// Reuses the same hub/channel infrastructure as Snake.
+// 扫雷循环由事件驱动，无需定时器轮询。
+// 与贪吃蛇复用连接管理器和消息通道。
 
 package minesweeper
 
 import (
-	"fmt"
+	cryptorand "crypto/rand"
 	"log"
 	"math/rand"
 	"time"
@@ -14,7 +14,7 @@ import (
 	"github.com/siyad01/multiplayer-terminal-games/internal/snake"
 )
 
-// MineInputMsg carries a player action.
+// MineInputMsg 携带一条玩家操作。
 type MineInputMsg struct {
 	PlayerID  uint8
 	SessionID uint64
@@ -30,8 +30,8 @@ const (
 	ActionCursor
 )
 
-// Loop runs the Minesweeper game loop.
-// Reuses snake.JoinMsg / snake.LeaveMsg / snake.StartMsg channels.
+// Loop 运行扫雷游戏循环。
+// 复用 snake.JoinMsg、snake.LeaveMsg 和 snake.StartMsg 通道。
 func Loop(
 	mineCh <-chan MineInputMsg,
 	joinCh <-chan snake.JoinMsg,
@@ -41,24 +41,31 @@ func Loop(
 	stopCh <-chan struct{},
 	broadcastCh chan<- []byte,
 	gameOverCh chan<- uint8,
+	saveResult func(MatchResult) error, // 可选的结算回调。
 ) {
 	var results []MatchResult
-	var matchNumber uint64
+
 	for {
-		matchNumber++
-		matchID := fmt.Sprintf("mine - %d", matchNumber)
+
+		matchID := cryptorand.Text()
 		done, result := runOnce(
 			mineCh, joinCh, leaveCh, startCh, setModeCh,
 			stopCh, broadcastCh, gameOverCh, matchID,
 		)
 		if result != nil {
 			results = append(results, *result)
-			log.Printf("minesweeper: 保存了比赛结果id = %s total = %d", result.GameID, len(results))
+			log.Printf("扫雷：已保存对局结果到内存，对局编号=%s，累计=%d 局", result.GameID, len(results))
+			// 有回调时同步保存此结果；失败记录对局编号和错误，然后继续下一局。
+			if saveResult != nil {
+				if err := saveResult(*result); err != nil {
+					log.Printf("扫雷：对局 %s 写入数据库失败：%v", result.GameID, err)
+				}
+			}
 		}
 		if done {
 			return
 		}
-		log.Println("minesweeper: restarting")
+		log.Println("扫雷：准备返回大厅")
 	}
 }
 
@@ -80,7 +87,7 @@ func runOnce(
 	gameOverCh chan<- uint8,
 	matchID string,
 ) (bool, *MatchResult) {
-	log.Println("minesweeper: lobby open")
+	log.Println("扫雷：大厅已开放")
 
 	lobbyPlayers := make(map[uint8]string)
 	playerSessions := make(map[uint8]uint64)
@@ -126,12 +133,12 @@ func runOnce(
 		if hasHost {
 			hid = hostID
 		}
-		// Reuse lobby state message — duration field = 0 for minesweeper
+		// 复用大厅状态消息，扫雷不设时长，所以时长填 0。
 		broadcast(protocol.EncodeLobbyFull(hid, ids, names, 0,
-			protocol.GameMode(gameMode+10))) // offset to distinguish from snake
+			protocol.GameMode(gameMode+10))) // 模式编号加 10，以区别于贪吃蛇。
 	}
 
-	// ── LOBBY ─────────────────────────────────────────────────
+	// ── 大厅 ─────────────────────────────────────────────────
 	for {
 		select {
 		case msg := <-joinCh:
@@ -194,7 +201,7 @@ func runOnce(
 			if len(lobbyPlayers) == 0 {
 				continue
 			}
-			log.Printf("minesweeper: starting mode=%d diff=%s players=%d",
+			log.Printf("扫雷：开局，模式编号=%d，难度=%s，玩家数=%d",
 				gameMode, difficulty, len(lobbyPlayers))
 			goto startGame
 
@@ -215,7 +222,7 @@ startGame:
 		broadcast(protocol.EncodePlayerJoined(id, lobbyPlayers[id]))
 	}
 
-	// Send initial board state
+	// 发送初始棋盘状态。
 	broadcast(protocol.EncodeMineState(
 		game.Width, game.Height,
 		game.VisibleCells(),
@@ -223,11 +230,11 @@ startGame:
 		uint16(game.FlagsLeft),
 	))
 
-	log.Printf("minesweeper: board %dx%d mines=%d",
+	log.Printf("扫雷：棋盘 %d×%d，地雷数=%d",
 		game.Width, game.Height, game.MineCount)
 
-	// ── GAME ──────────────────────────────────────────────────
-	// No ticker — purely event-driven
+	// ── 对局 ─────────────────────────────────────────────────
+	// 只在收到事件时更新游戏。
 	for {
 		select {
 		case msg := <-mineCh:
@@ -253,15 +260,15 @@ startGame:
 
 			case ActionCursor:
 				game.MoveCursor(msg.PlayerID, msg.X, msg.Y)
-				// Broadcast cursor positions (cheap — just 4 bytes per player)
+				// 广播光标位置，每名玩家占 4 字节。
 				broadcast(protocol.EncodeCursors(game.AllCursors()))
 				continue
 			}
 
-			// Broadcast cell changes (partial update — efficient)
+			// 只广播发生变化的格子。
 			if len(changes) > 0 {
 				broadcast(protocol.EncodeMineUpdate(changes))
-				// Also broadcast scores
+				// 同时广播分数。
 				broadcast(protocol.EncodeMineState(
 					game.Width, game.Height,
 					game.VisibleCells(),
@@ -272,7 +279,7 @@ startGame:
 
 			if result.Exploded {
 				res := game.SnapshotResult()
-				log.Printf("minesweeper: player %d hit a mine at (%d,%d)",
+				log.Printf("扫雷：玩家 %d 在 (%d,%d) 踩到地雷",
 					msg.PlayerID, msg.X, msg.Y)
 				broadcast(protocol.EncodeMineExplode(msg.PlayerID, msg.X, msg.Y))
 				select {
@@ -285,8 +292,8 @@ startGame:
 
 			if result.Won {
 				res := game.SnapshotResult()
-				log.Println("minesweeper: board cleared!")
-				// Find highest scorer as winner
+				log.Println("扫雷：已翻开所有安全格，通关！")
+				// 选出分数最高的玩家。
 				var winner uint8 = 0xFF
 				var best uint16 = 0
 				for _, p := range game.Players {
@@ -305,7 +312,7 @@ startGame:
 			}
 
 		case msg := <-joinCh:
-			// Late join during game
+			// 对局进行中，拒绝新玩家加入本局。
 			msg.ResultChan <- false
 
 		case msg := <-leaveCh:
@@ -315,7 +322,7 @@ startGame:
 			}
 
 			game.RemovePlayer(msg.PlayerID)
-			log.Printf("minesweeper: player %d left", msg.PlayerID)
+			log.Printf("扫雷：玩家 %d 已离开本局", msg.PlayerID)
 
 			// TODO：判断是否所有本局玩家都已离开
 			if game.AllPlayersLeft() {
@@ -324,7 +331,7 @@ startGame:
 				game.Cancel()
 				res := game.SnapshotResult()
 				gameID := game.MatchId
-				log.Printf("游戏已结束 对局记录为:%v", gameID)
+				log.Printf("扫雷：全员离开，对局已取消，对局编号=%v", gameID)
 				// TODO：退出本次 runOnce，让外层 Loop 重新进入大厅
 				return false, &res
 			}

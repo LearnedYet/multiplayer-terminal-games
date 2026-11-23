@@ -1,0 +1,12 @@
+2026-11-23；会话 01a1d8b6-cd1f-7ff3-bdb7-a05adcfc61a4；Windows amd64；GOWORK=off
+go version go1.27.3 windows/amd64
+go test -mod=readonly ./cmd/mineserver -count=1 -v -timeout=30s
+
+FAIL	github.com/siyad01/multiplayer-terminal-games/cmd/mineserver [build failed]
+# github.com/siyad01/multiplayer-terminal-games/cmd/mineserver [github.com/siyad01/multiplayer-terminal-games/cmd/mineserver.test]
+cmd\mineserver\match_http.go:42:11: undefined: request
+cmd\mineserver\match_http.go:43:3: declared and not used: count
+cmd\mineserver\match_http.go:43:10: declared and not used: err
+FAIL
+
+进程退出码：1

@@ -1,0 +1,44 @@
+Thread: 01a1d8b6-cd1f-7ff3-bdb7-a05adcfc61a4
+Windows amd64; GOWORK=off; retry with unused import removed from observation helper only.
+go version go1.27.3 windows/amd64
+Reuse checked build: C:\Users\c8618\AppData\Local\GoA\artifacts\a3-loop-settlement-20261121-01\mineserver.exe
+cmd/mineserver/main.go SHA256: FF3C38982ACDE7DB8090FF90B5FD3FF83449FAB1BCC3016FF150A0DEF664874C
+internal/minesweeper/loop.go SHA256: 5DA0CBA221768FA4AC9C52C60F751E879085D017C1B3349F9CFF8567FD7BB65E
+cmd/mineserver/match_store.go SHA256: 7E296D5DF77A4D733558A1C50B794476518995A8965A2D4BFFA18BDD725613CA
+MySQL ready at 127.0.0.1:13306; server PID=36048
+VERSION()	DATABASE()
+8.4.13	go_a_learning
+go test -mod=readonly -overlay C:\Users\c8618\AppData\Local\GoA\artifacts\a3-loop-settlement-20261121-02\overlay.json ./cmd/mineserver -run '^TestObserveLoopSettlement$' -count=1 -v -timeout=25s
+=== RUN   TestObserveLoopSettlement
+    settlement_observation_test.go:33: fixture client names: ACJRK5JWQCRTU BCJRK5JWQCRTU
+2026/11/21 00:42:51 hub started
+2026/11/21 00:42:51 minesweeper server listening on :8081
+2026/11/21 00:42:51 connect: go run cmd/client/main.go -name yourname
+2026/11/21 00:42:51 minesweeper: lobby open
+2026/11/21 00:42:52 hub: registered (id=0 name=ACJRK5JWQCRTU total=1)
+2026/11/21 00:42:52 hub: registered (id=1 name=BCJRK5JWQCRTU total=2)
+    settlement_observation_test.go:88: assigned player IDs: 0 1
+2026/11/21 00:42:52 minesweeper: starting mode=1 diff=easy players=2
+2026/11/21 00:42:52 minesweeper: board 9x9 mines=10
+    settlement_observation_test.go:94: received game state after Cooperative / Easy start
+2026/11/21 00:42:52 hub: unregistered (id=0 total=1)
+2026/11/21 00:42:52 hub: unregistered (id=1 total=0)
+2026/11/21 00:42:52 minesweeper: player 0 left
+2026/11/21 00:42:52 minesweeper: player 1 left
+2026/11/21 00:42:52 游戏已结束 对局记录为:QP3FXMTSBQX24XB54YJ372FUXJ
+2026/11/21 00:42:52 minesweeper: 保存了比赛结果id = QP3FXMTSBQX24XB54YJ372FUXJ total = 1
+2026/11/21 00:42:52 minesweeper: restarting
+2026/11/21 00:42:52 minesweeper: lobby open
+    settlement_observation_test.go:108: match result: game_id=QP3FXMTSBQX24XB54YJ372FUXJ won=false canceled=true
+    settlement_observation_test.go:119: player: id=0 name=ACJRK5JWQCRTU left_early=true
+    settlement_observation_test.go:119: player: id=1 name=BCJRK5JWQCRTU left_early=true
+    settlement_observation_test.go:122: participant row count: 2
+    settlement_observation_test.go:54: harness stopped the mineserver process
+    settlement_observation_test.go:43: removed fixture match: QP3FXMTSBQX24XB54YJ372FUXJ
+--- PASS: TestObserveLoopSettlement (0.53s)
+PASS
+ok  	github.com/siyad01/multiplayer-terminal-games/cmd/mineserver	1.411s
+Observation exit code: 0
+MySQL server PID=36048 exited normally.
+Ports 13306 and 8081 no longer listening.
+Source hashes unchanged.
