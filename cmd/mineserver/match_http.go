@@ -61,6 +61,10 @@ func matchListHandler(db *sql.DB) http.HandlerFunc {
 		}
 
 		// 复用详情的 JSON 响应写法，返回这一页摘要。
-		http.Error(w, "战绩分页接口尚未实现", http.StatusNotImplemented)
+		w.Header().Set("Content-Type", "application/json")
+		if err := json.NewEncoder(w).Encode(page); err != nil {
+			log.Printf("写入战绩列表失败: %v", err)
+		}
+
 	}
 }

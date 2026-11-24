@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#162421">
+  <title>对局战绩 · 雷区搭档</title>
+  <link rel="stylesheet" href="/style.css">
+  <script type="module" src="/history.js"></script>
+</head>
+<body>
+  <header class="masthead">
+    <a class="brand" href="/" aria-label="雷区搭档首页">
+      <span class="mark" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
+      <span>雷区搭档 <small>项目 A</small></span>
+    </a>
+    <a class="header-link" href="/">返回大厅</a>
+  </header>
+
+  <main class="record-layout">
+    <div class="titlebar"><h1>对局战绩</h1></div>
+    <section class="panel" aria-label="对局列表">
+      <p id="list-status" class="muted" role="status">正在读取战绩…</p>
+      <ul id="match-list" class="match-list"></ul>
+      <nav id="page-nav" class="page-nav" aria-label="战绩分页" hidden>
+        <a id="prev-page">上一页</a>
+        <span id="page-number" class="muted"></span>
+        <a id="next-page">下一页</a>
+      </nav>
+    </section>
+  </main>
+</body>
+</html>

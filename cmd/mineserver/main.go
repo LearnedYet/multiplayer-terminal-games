@@ -93,10 +93,10 @@ func main() {
 	}()
 
 	http.HandleFunc("/ws", mineWSHandler(hub, mineCh, setModeCh))
-	// 数据库连接可用时，注册 GET /matches/{gameID} 战绩详情路由。
+	// 数据库连接可用时，注册战绩列表和详情路由。
 	if db != nil {
 		http.HandleFunc("GET /matches/{gameID}", matchDetailHandler(db))
-		// TODO(A3)：分页处理函数写好后，在这里注册 GET /matches。
+		http.HandleFunc("GET /matches", matchListHandler(db))
 	}
 
 	srv := &http.Server{Addr: ":8081", Handler: nil}

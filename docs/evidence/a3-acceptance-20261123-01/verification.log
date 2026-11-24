@@ -1,0 +1,27 @@
+日期：2026-11-23（America/Los_Angeles）
+环境：Windows amd64，Go 1.27.3，GOWORK=off，本机 MySQL 8.4.13（127.0.0.1:13306），Codex 浏览器。
+
+代码审查：用户保存分页 JSON 响应和列表路由。AI 修正路由模式中 GET 后遗漏的空格并更新相邻注释。
+构建：`go build -mod=readonly ./...`，退出 0。
+测试：`go test -mod=readonly ./... -count=1 -v -timeout=60s`，43 PASS、0 FAIL、0 SKIP，退出 0，见 full-tests.log。
+
+当前工作区联调：在启动进程设置本机学习库连接，执行 `& ./tools/playtest/start.ps1 -Port 8093 -Backend A3`。进程 15120。
+- 两个浏览器标签以验收甲、验收乙进入合作／简单模式。乙在第 1 行第 1 列插旗，甲在第 5 行第 5 列翻格后观察到 46 格，随后在第 1 行第 8 列踩雷。
+- 扫雷日志：已保存对局结果到内存，对局编号=VHQFYVD6ZIH3MTKA7ZM6BQBYRN，累计=1 局。后续 HTTP 读取 MySQL 中的这局，返回相同编号。
+- 大厅点「战绩」，列表有本次败局和此前的取消局。点败局自动显示验收甲 46 格／0 旗，验收乙 0 格／1 旗，两人均留到结算。见 match-result.jpg。
+
+实际 HTTP 请求均使用 Invoke-WebRequest 与 127.0.0.1:8093：
+/matches?limit=1&offset=0 -> 200 application/json [{"GameID":"TOZE2PNVADA3NVE6WAS6CKEXBV","Won":false,"Cancel":true}]
+/matches?limit=1&offset=1 -> 200 application/json [{"GameID":"VHQFYVD6ZIH3MTKA7ZM6BQBYRN","Won":false,"Cancel":false}]
+/matches?limit=1&offset=99999 -> 200 []
+/matches?limit=51&offset=0 -> 400 分页参数不合法
+/matches?limit=1&offset=-1 -> 400 跳过参数不合法
+/matches/NO-SUCH-A3-MATCH -> 404 战绩不存在
+/matches/VHQFYVD6ZIH3MTKA7ZM6BQBYRN -> 200
+{"GameID":"VHQFYVD6ZIH3MTKA7ZM6BQBYRN","Won":false,"Cancel":false,"PlayerResult":[{"ID":0,"Name":"验收甲","Reveals":46,"Flags":0,"Left":false},{"ID":1,"Name":"验收乙","Reveals":0,"Flags":1,"Left":false}]}
+
+重启验证：沿用同一试玩启动命令，将端口改为 8095，使用与 8093 相同的本机 MySQL，避免打断用户正在使用的大厅。
+- 第一次启动进程 14308，详情 HTTP 200、原始 JSON 与 8093 一致，列表 HTTP 200 并包含本局编号。
+- Ctrl+C 后服务日志记录「扫雷服务已正常停止」，实际确认 8095 监听消失。
+- 第二次启动进程 33836，详情 HTTP 200，原始 JSON 与重启前完全一致，列表 HTTP 200 并包含本局编号。同样以 Ctrl+C 关闭。
+- 8093 的试玩服务和 MySQL 保留运行。未在本次重启 MySQL。事务原子性和重复写入沿用 a3-match-write-20261119-02 的实际观察批次。本次浏览器未复打胜局。

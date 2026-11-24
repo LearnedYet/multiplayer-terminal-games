@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#162421">
+  <title>单局战绩 · 雷区搭档</title>
+  <link rel="stylesheet" href="/style.css">
+  <script type="module" src="/result.js"></script>
+</head>
+<body>
+  <header class="masthead">
+    <a class="brand" href="/" aria-label="返回试玩页">
+      <span class="mark" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
+      <span>雷区搭档 <small>项目 A</small></span>
+    </a>
+    <a class="header-link" id="history-link" href="/history.html">返回战绩</a>
+  </header>
+
+  <main class="record-layout">
+    <div class="titlebar">
+      <div>
+        <h1>单局战绩</h1>
+      </div>
+    </div>
+
+    <p id="query-status" class="muted" role="status"></p>
+    <section class="panel" id="lookup">
+      <form id="query-form">
+        <label for="match-id">对局编号</label>
+        <div class="join-row">
+          <input id="match-id" name="id" maxlength="64" required autocomplete="off" spellcheck="false">
+          <button class="primary" type="submit">查询战绩</button>
+        </div>
+      </form>
+    </section>
+
+    <section id="record" class="panel" hidden aria-labelledby="record-title">
+      <div class="panel-title">
+        <h2 id="record-title">对局结果</h2>
+        <strong id="outcome" class="record-outcome"></strong>
+      </div>
+      <p id="record-id" class="muted record-id"></p>
+      <div class="record-table-scroll">
+        <table class="record-table">
+          <thead><tr><th scope="col">玩家</th><th scope="col">翻格</th><th scope="col">插旗</th><th scope="col">离场情况</th></tr></thead>
+          <tbody id="stats"></tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+</body>
+</html>

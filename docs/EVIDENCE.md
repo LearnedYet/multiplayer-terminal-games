@@ -630,6 +630,27 @@ go run ./cmd/client -name bob
 
 - 按用户要求保存当前进度，包括已验证的事务保存与查询层、用户已完成的分页参数与错误状态处理，以及未完成的 HTTP 响应和路由。推送前 `go test -mod=readonly ./cmd/mineserver -count=1 -v -timeout=30s` 在编译阶段因 `page` 未使用退出 1。A3 最终验收待续。[核对记录](evidence/a3-checkpoint-20261123-01/verification.log)
 
+## 项目 A 浏览器双人试玩（2026-11-23）
+
+- 用户提出希望像 Unity 的 Play 一样进入实际游戏观察功能，并授权 AI 制作首版。AI 实现本机启动脚本和浏览器 UI，复用原有游戏服务、消息协议和棋盘规则。A2 用户此前完成的固定名单与连接身份代码沿用，试玩客户端记为 AI 实现。两浏览器已查验开局、单格翻开同步、插旗同步、踩雷结算及双方重新进入大厅；现阶段挂接 A2 本机副本。[运行记录](evidence/a2-browser-playtest-20261123-01/verification.log) · [浏览器原生截图](evidence/a2-browser-playtest-20261123-01/duo-board.jpg)
+
+## A3 浏览器单局战绩验收（2026-11-23）
+
+- 用户此前在指导下完成结算接线、事务保存、按编号查询及详情 HTTP 路由。按用户本次授权，AI 增加单局战绩网页和本机 `A3Detail` 启动选项。试玩启动使用 `8ae3412` 的仓库外副本，只在副本跳过未接线的分页 HTTP 草稿；仓库业务文件沿用该进度快照。
+- 本机 MySQL 8.4.13 和 8092 试玩服务运行时，AI 操作两个浏览器玩家开局、翻格、插旗、依次离开。实际 SQL 联查返回一局取消与两名玩家，真实 `GET /matches/{gameID}` 返回 HTTP 200，网页显示相同结果。演示甲翻开 34 格，演示乙插 1 面旗，二人均中途离开。这是 AI 代为执行的联机验收，记录已保留供用户自己查询。重启后再查、列表分页及全库验收仍待进行。[命令与结果](evidence/a3-browser-detail-20261123-01/verification.log) · [浏览器原始截图](evidence/a3-browser-detail-20261123-01/match-detail.jpg)
+
+## A3 战绩列表前端接线（2026-11-23）
+
+- 用户确认大厅进入战绩列表，再逐局查看详情。AI 负责大厅入口、列表与详情导航、分页交互及采用当前工作区源码的试玩启动选项。浏览器列表调用计划中的 `GET /matches?limit=9&offset=…`，每页展示 8 条并用多取的一条判断是否还有下一页。单局详情沿用原接口。
+- 临时本机 HTTP 测试数据由一局已有详情与八条合成记录组成。实际浏览器从大厅点开战绩，第一页显示 8 条，点击下一页看到剩下 1 条，点这局看到玩家详情，返回后保持第 2 页。JavaScript 和 PowerShell 语法检查通过，现有 8092 详情预览上的列表接口返回 404。此处为 AI 完成的前端交互验证，用户编写的分页 JSON 响应、路由与真实后端联调待续。[验证记录](evidence/a3-browser-history-20261123-01/verification.log)
+- 用户要求先理解按钮行为，再看本小段写法。用户自己将 `matchListHandler` 的 501 占位换为 `application/json` 响应和 `Encode(page)`，并记录编码写入错误。AI 审查保存内容并验证。Windows / GOWORK=off 下 `go test -mod=readonly ./cmd/mineserver -count=1 -v -timeout=30s` 退出 0，已有的 `TestMineCursorUsesConnectionIdentity` 一项通过；`go build -mod=readonly -o <仓库外产物> ./cmd/mineserver` 退出 0。列表路由及真实接口验证待续，已有测试未覆盖分页回复。
+
+## A3 本机综合验收（2026-11-23）
+
+- 用户在指导下完成结算与查询核心代码，并保存最终的分页 JSON 回复和 `GET /matches` 路由。AI 修正路由字符串漏写的空格、提供浏览器端选项和界面，负责联调、重启验证和证据归档。历史事务实测已核对首次保存、对局主键防重复、玩家写入失败时整局回滚。[事务验证](evidence/a3-match-write-20261119-02/verification.log)
+- 使用当前工作区源码构建本机 A3 试玩服务。AI 操作两个浏览器玩家开局、同步翻格和插旗，再实际踩雷结算。点大厅「战绩」后可以打开败局详情，验收甲翻开 46 格，验收乙插了 1 面旗，两人留到结算。两个真实对局用 `limit=1` 请求两页，各返回一条；超出最后一页返回空数组，参数错误返回 400，未知详情返回 404。[命令与结果](evidence/a3-acceptance-20261123-01/verification.log) · [战绩画面](evidence/a3-acceptance-20261123-01/match-result.jpg)
+- 8095 的独立验证服务停止并重新启动，进程号变化，调用同一对局详情得到相同的原始 JSON，列表仍包含同一编号。用户操作使用的 8093 和本机 MySQL 在此期间保持运行。全库 43 项通过，构建退出 0。浏览器联调由 AI 执行，账号战绩留作后续。[全库测试](evidence/a3-acceptance-20261123-01/full-tests.log)
+
 ## 个人贡献索引
 
 以下只记录实际发生的贡献与验证，并标明指导与独立修改的范围；Phase 0 文档成果仍按上面的事实说明归属。

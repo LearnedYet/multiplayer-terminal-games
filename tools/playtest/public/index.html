@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#162421">
+  <title>雷区搭档 · 项目 A</title>
+  <link rel="stylesheet" href="/style.css">
+  <script type="module" src="/play.js"></script>
+</head>
+<body>
+  <header class="masthead">
+    <a class="brand" href="/" aria-label="雷区搭档首页">
+      <span class="mark" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
+      <span>雷区搭档 <small>项目 A</small></span>
+    </a>
+    <div class="header-actions">
+      <a class="header-link" href="/history.html" target="_blank" rel="noopener">战绩 <span aria-hidden="true">↗</span></a>
+      <span class="connection" id="connection" role="status">未连接</span>
+    </div>
+  </header>
+
+  <main class="layout">
+    <section class="game" aria-labelledby="title">
+      <div class="titlebar">
+        <div>
+          <h1 id="title">合作扫雷</h1>
+          <p class="muted">简单 · 9 × 9 · 10 雷</p>
+        </div>
+        <div class="flag-count" id="flag-count" hidden><span aria-hidden="true">⚑</span> <strong id="flags"></strong><span> 面可用</span></div>
+      </div>
+
+      <div class="playfield">
+        <div class="lobby" id="lobby">
+          <div class="lobby-art" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+          <h2 id="lobby-title">找个搭档，开一局</h2>
+          <p class="muted" id="lobby-hint">两个人共享一张棋盘，一起排雷。</p>
+          <form id="join-form">
+            <label for="player-name">你的昵称</label>
+            <div class="join-row">
+              <input id="player-name" name="name" maxlength="15" autocomplete="off" required>
+              <button class="primary" type="submit">加入大厅</button>
+            </div>
+          </form>
+          <button id="start" class="primary" type="button" hidden>开始对局</button>
+          <button id="rejoin" class="primary" type="button" hidden>加入下一局</button>
+        </div>
+        <div class="board" id="board" aria-label="扫雷棋盘" hidden></div>
+      </div>
+
+      <div class="controls" id="controls" hidden>
+        <div class="toggle" role="group" aria-label="棋盘操作">
+          <button id="reveal" type="button" aria-pressed="true"><span aria-hidden="true">▧</span> 翻格</button>
+          <button id="flag" type="button" aria-pressed="false"><span aria-hidden="true">⚑</span> 插旗</button>
+        </div>
+        <span class="muted">右键也可以插旗</span>
+      </div>
+    </section>
+
+    <aside class="sidebar" aria-label="对局信息">
+      <section class="panel">
+        <div class="panel-title">
+          <h2>搭档</h2>
+          <span id="player-count" class="player-count">0 人</span>
+        </div>
+        <ul id="players" class="players" aria-label="玩家名单"></ul>
+        <a class="invite" href="/?player=搭档" target="_blank" rel="noopener">在新标签页打开第二个玩家 <span aria-hidden="true">↗</span></a>
+      </section>
+      <section class="panel notice" aria-live="polite">
+        <h2 id="notice-title">等你开局</h2>
+        <p class="muted" id="notice-text">双方加入大厅后，由房主开始对局。</p>
+        <button id="again" class="primary" type="button" hidden>返回大厅</button>
+      </section>
+      <button id="leave" class="leave" type="button" hidden>离开对局</button>
+    </aside>
+  </main>
+</body>
+</html>

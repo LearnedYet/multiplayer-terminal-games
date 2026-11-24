@@ -1,0 +1,11 @@
+日期：2026-11-23（America/Los_Angeles）
+环境：Windows，Node.js，PowerShell，Codex 浏览器。
+
+- `node --check tools/playtest/public/history.js`、`node --check tools/playtest/public/result.js`、`node --check tools/playtest/public/match-outcome.js` 均退出 0，PowerShell 解析 `tools/playtest/start.ps1` 无语法错误。
+- Node 临时服务监听 127.0.0.1:8094，提供同一份试玩前端文件及 9 条测试摘要。一条取自已有的 A3 详情，另八条为合成记录。未写入 MySQL。
+- 浏览器实际导航：大厅点「战绩」打开新标签页，第一页列出 8 局并显示「下一页」。第二页仅有 DEMO-9，显示「上一页」。点 DEMO-9 后自动显示「挑战失败」、演示玩家翻 8 格及「留到结算」；点「返回战绩」回到第 2 页。
+- `Invoke-WebRequest` 核对现有 8092 详情预览：`/history.html` HTTP 200，`/matches?limit=9&offset=0` HTTP 404。
+- `go test -mod=readonly ./cmd/mineserver -count=1 -timeout=30s` 退出 1，`match_http.go:57:3: declared and not used: page`。用户待补服务端响应及路由。
+- 临时前端测试服务已停止，8094 无监听。
+
+本批次验证前端交互；分页接口及工作区 A3 服务、真实局入库后的列表查询、重启查询待验收。

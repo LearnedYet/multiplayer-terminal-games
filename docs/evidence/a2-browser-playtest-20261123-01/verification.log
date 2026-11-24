@@ -1,0 +1,20 @@
+批次：a2-browser-playtest-20261123-01
+会话：01a1d8b6-cd1f-7ff3-bdb7-a05adcfc61a4
+环境：Windows amd64；Go 1.27.3；Node v24.18.0；ChatGPT 内置浏览器
+后端：e3413e3b66deaac9113f4ab1e94cd77dcbe59b18，仓库外副本
+启动：& ./tools/playtest/start.ps1
+脚本内构建：go build -mod=readonly -o <仓库外产物> ./cmd/mineserver
+Get-NetTCPConnection -LocalPort 8091 -State Listen：127.0.0.1:8091
+Invoke-WebRequest 请求 /、/style.css、/play.js、/wire.js：均为 200
+node --check tools/playtest/public/wire.js：退出 0
+node --check tools/playtest/public/play.js：退出 0
+
+同一真实游戏服务的两个浏览器标签页：
+1. 试玩一号、试玩二号分别加入大厅，试玩一号启动合作／简单局。
+2. 试玩一号翻开第 5 行第 5 列，两端看到“周围 0 雷”。
+3. 试玩二号在第 1 行第 1 列插旗，两端看到“已插旗”，剩余旗数均为 9。
+4. 继续翻格至踩雷，两端出现“返回大厅”，双方回到 2 人大厅。
+5. 关闭测试页；GPT 已在大厅等待，用户试玩页打开并保留。
+
+duo-board.jpg：步骤 3 后的浏览器原生截图。
+本批次未接入 A3 的数据库、战绩 API 或独立 Agent。

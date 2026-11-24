@@ -1,0 +1,16 @@
+日期：2026-11-23（America/Los_Angeles）
+环境：Windows amd64、Go 1.27.3、本机 MySQL 8.4.13（127.0.0.1:13306）、Codex 浏览器。
+后端进度快照：8ae341221b32e7f1b034cc38e11a59f2a89356fe。脚本导出至仓库外，在副本跳过未接线的分页 HTTP 草稿并加入静态网页入口。
+
+命令与操作：
+- 使用已有 Start-MySQL.ps1 启动本机学习实例。
+- 在服务启动进程设置学习库 MINESWEEPER_MYSQL_DSN 后执行 & ./tools/playtest/start.ps1 -Port 8092 -Backend A3Detail。脚本内的 go build -mod=readonly -o <仓库外产物> ./cmd/mineserver 成功，服务监听 127.0.0.1:8092。首次启动因 CRLF 使分页草稿依赖的 strconv 导入未移除而构建失败，修正副本处理后重试成功。
+- 两个独立浏览器标签分别以 A3演示甲、A3演示乙 加入。合作／简单模式开局，甲点击第 5 行第 5 列，乙在第 1 行第 1 列插旗，两边看到旗子；两人依次离开，触发取消。
+- Connect-MySQL.ps1 -Sql "SELECT r.game_id,r.won,r.canceled,p.name,p.reveals,p.flags,p.left_early FROM match_results r JOIN match_players p ON p.game_id=r.game_id WHERE p.name LIKE 'A3%' ORDER BY p.player_id"
+  同一编号 TOZE2PNVADA3NVE6WAS6CKEXBV 返回两行：won=0，canceled=1，reveals/flags 分别为 34/0、0/1，left_early 都为 1。
+- Invoke-WebRequest 'http://127.0.0.1:8092/matches/TOZE2PNVADA3NVE6WAS6CKEXBV' -TimeoutSec 4
+  HTTP 200
+  {"GameID":"TOZE2PNVADA3NVE6WAS6CKEXBV","Won":false,"Cancel":true,"PlayerResult":[{"ID":0,"Name":"A3演示甲","Reveals":34,"Flags":0,"Left":true},{"ID":1,"Name":"A3演示乙","Reveals":0,"Flags":1,"Left":true}]}
+- 打开 http://127.0.0.1:8092/result.html?id=TOZE2PNVADA3NVE6WAS6CKEXBV，点击「查询战绩」。页面显示「已取消」，两名玩家的名字、翻格数、旗数和「中途离开」与 HTTP 响应一致。match-detail.jpg 为实际浏览器画面。
+
+演示局保留在本地学习库中，A3 服务与数据库继续运行供用户操作。重启查询和分页留待分段验证。本次未运行全库 Go 测试或验证 A3 正式发布构建。
