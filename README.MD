@@ -1,5 +1,69 @@
 <div align="center">
 
+# 🎮 multiplayer-terminal-games（项目 A：多人合作扫雷服务端二次开发）
+
+**基于 Go + WebSocket + MySQL 的多人合作扫雷服务端工程化改造**
+
+[![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
+[![Go Version](https://img.shields.io/badge/Go-1.26%2B-00ADD8?logo=go)](go.mod)
+
+</div>
+
+> 本仓库 Fork 自 [siyad01/multiplayer-terminal-games](https://github.com/siyad01/multiplayer-terminal-games)（Apache-2.0）。在保留原项目终端客户端、二进制协议与单 goroutine 状态所有权模型的基础上，围绕 **Minesweeper 单房间合作模式（Cooperative / Easy）** 完成连接身份隔离、单局生命周期重构、MySQL 事务结算、HTTP 战绩查询与本地浏览器试玩联调。
+
+---
+
+## 二次开发核心改造（A1 – A4）
+
+- **输入信任边界与模式转发修复**
+  - 修复 Snake 模式构造时遗漏保存 `setModeCh` 导致多人模式切换无效的缺陷，补充到达检查回归测试。
+  - 修复扫雷操作信任客户端上报玩家编号的边界漏洞，入口统一强绑定服务端连接分配的 `c.ID()`，补充真 WebSocket 回归测试。
+- **连接会话隔离与单对局生命周期**
+  - 引入原子递增的连接级 `SessionID`，并在大厅与进行中对局校验 `(PlayerID, SessionID)`，阻断短 ID 回收复用引起的串局与迟到消息污染。
+  - 实现开局锁定固定名单、玩家中途离开保留当前成绩并阻断后续操作、全员离开标记取消、结束生成不可变值拷贝快照（`SnapshotResult`）与随机唯一对局编号。
+- **MySQL 事务结算与 HTTP 查询接口**
+  - 新增 [`db/schema.sql`](db/schema.sql)（`match_results`、`match_players` 双表，InnoDB 联合主键与外键约束）。
+  - 基于原生 `database/sql` 实现单事务原子落库与主键防重（1062），写入设置 3 秒超时并记录错误日志，数据库异常时不阻塞下一局大厅开放。
+  - 实现按对局查详情 `GET /matches/{gameID}` 与有界分页列表 `GET /matches?limit=...&offset=...`（限制每页 `1–50` 条、区分 400 / 404 / 500 状态），服务重启后已落库战绩可正常恢复查询。
+- **规则缺陷修复与回归保障**
+  - 独立定位并修复合作模式跨玩家撤旗扣错玩家计数的归属缺陷（`Flag` 中先保存原插旗者 `FlaggedBy` 再清零扣减，配合 `uint16` 防下溢保护），补充 `TestCrossPlayerUnflagDecrementsOriginalOwner` 回归测试并在浏览器端实测验证。
+
+### 当前范围与边界说明
+
+- **已实现与验证**：单房间 Cooperative / Easy 对局生命周期、连接身份隔离、MySQL 事务结算与详情/分页查询、本机断库降级与重启回查验证；全库 `44` 项单元测试通过。
+- **暂未实现（不作夸大声明）**：多房间并发隔离、Redis 缓存、用户注册登录体系与高并发压测指标。
+- **分工与验证证据**：详细改动追踪、人工与 AI 协作边界及原始测试日志见 [`docs/CURRENT_STATE.md`](docs/CURRENT_STATE.md) 与 [`docs/EVIDENCE.md`](docs/EVIDENCE.md)。
+
+---
+
+## 本地验证与试玩说明
+
+### 1. 运行全库测试（44 项）
+
+```bash
+go test -mod=readonly ./... -count=1 -v
+```
+
+### 2. 启动带 MySQL 持久化与浏览器试玩的服务
+
+1. 在 MySQL 8.4 中创建数据库并执行 [`db/schema.sql`](db/schema.sql) 建表。
+2. 在当前终端进程配置连接串环境变量 `MINESWEEPER_MYSQL_DSN`（例如 `user:password@tcp(127.0.0.1:13306)/go_a_learning`）。
+3. 启动扫雷服务端，或使用本地浏览器试玩入口（详见 [`tools/playtest/README.md`](tools/playtest/README.md)）：
+
+```powershell
+# 启动扫雷服务端（监听 :8081）
+go run ./cmd/mineserver
+
+# 或启动带浏览器试玩页与战绩页面的本地联调入口（示例端口 8093）
+pwsh -NoProfile -File .\tools\playtest\start.ps1 -Backend A3 -Port 8093
+```
+
+---
+
+## 原上游说明（Upstream README）
+
+<div align="center">
+
 # 🎮 multiplayer-terminal-games
 
 **Real-time multiplayer games that run entirely in your terminal**
