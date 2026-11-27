@@ -651,6 +651,17 @@ go run ./cmd/client -name bob
 - 使用当前工作区源码构建本机 A3 试玩服务。AI 操作两个浏览器玩家开局、同步翻格和插旗，再实际踩雷结算。点大厅「战绩」后可以打开败局详情，验收甲翻开 46 格，验收乙插了 1 面旗，两人留到结算。两个真实对局用 `limit=1` 请求两页，各返回一条；超出最后一页返回空数组，参数错误返回 400，未知详情返回 404。[命令与结果](evidence/a3-acceptance-20261123-01/verification.log) · [战绩画面](evidence/a3-acceptance-20261123-01/match-result.jpg)
 - 8095 的独立验证服务停止并重新启动，进程号变化，调用同一对局详情得到相同的原始 JSON，列表仍包含同一编号。用户操作使用的 8093 和本机 MySQL 在此期间保持运行。全库 43 项通过，构建退出 0。浏览器联调由 AI 执行，账号战绩留作后续。[全库测试](evidence/a3-acceptance-20261123-01/full-tests.log)
 
+## A4 单房间交付与跨玩家撤旗修复（2026-11-27）
+
+- 批次：`a4-acceptance-20261127-01`；执行对话：`b1b14ae0-5712-4327-b588-1fff242abe19`。
+- 完整链路与重启复验：在 `8093` 试玩服务与本机 MySQL 8.4.13 下，用户与 AI 浏览器搭档完成合作通关局 `YGXQJO6XJI7VYGQQCCO4N5VS2E`（AI 搭档翻 1 格插 1 旗后中途离开，用户翻 70 格通关，`won=1`、`canceled=0`，`left_early=1` 保留）。重起 `8093` 新进程清空内存后，浏览器刷新 `/history.html` 与单局详情仍可查到该局。
+- R8 跨玩家撤旗修复（用户定位并在提示下编写核心修复与回归断言）：
+  - 修复前在 `8093` 浏览器实测：玩家B 插 1 旗、玩家A 拔掉同一格后，战绩详情中玩家B 仍显示 `1`。
+  - 用户在 `internal/minesweeper/game.go`（`Flag` 的 `case StateFlagged:`）先保存 `flaggedBy := cell.FlaggedBy` 再清零并按 `flaggedBy` 扣减 `p.Flags`，并在 `internal/minesweeper/game_test.go` 完成 `TestCrossPlayerUnflagDecrementsOriginalOwner`；AI 负责问题定位提示、审查（指出首次 `playerID` 笔误与占位 `t.Fatal`）、重拉 `8093` 试玩与归档验证。
+  - 修复后用当前源码重拉 `8093` 实测同一操作，战绩详情双方插旗数均为 `0`；用户并自行推演出交叉插拔旗结果及 `p.Flags > 0` 防止 `uint16` 下溢回绕的作用。
+- 断库故障观察：保留 `8093` 运行并正常停止 MySQL，本局 `JTHBPLKWQCAXTGRUBEQSRYOQFG` 结束 3 秒后日志记录写库失败（`dial tcp 127.0.0.1:13306: connectex`），服务未崩溃并重新开放大厅；重拉 MySQL（13306，`match_results` 共 8 条）后无需重启 `8093` 即恢复查询。
+- 全库验证（Go 1.27.3 / Windows amd64 / `GOWORK=off`）：`go test -mod=readonly ./... -count=1 -v -timeout=60s` 为 44 项顶层 PASS、0 SKIP、0 FAIL，`go build -mod=readonly ./...` 退出 0。见 [A4 验收记录](evidence/a4-acceptance-20261127-01/verification.log) 及 [全库测试日志](evidence/a4-acceptance-20261127-01/full-tests.log)。未执行 `-race`、压力或跨机器测试；断库期间未落库对局按首版取舍仅留内存。
+
 ## 个人贡献索引
 
 以下只记录实际发生的贡献与验证，并标明指导与独立修改的范围；Phase 0 文档成果仍按上面的事实说明归属。
@@ -660,3 +671,5 @@ go run ./cmd/client -name bob
 | A1.1-R1（指导下完成） | 字段赋值及消息断言，自动与有限联机验证通过 | `488dd313bc13` / `d02f621` | 补字段赋值、玩家 1 输入及两字段判断；格式化报告经指导修正 | 上游架构复用；AI 讲解、格式整理及验证辅助 | [回归通过](evidence/a11-regression-20261111-01/current-targeted-test.log)、[联机截图](evidence/a11-snake-after-fix-20261111-01/server-mode-2-and-clean-shutdown.png) |
 | A1.2-R4（指导下完成，已交付） | 光标身份来源修复，自动验证及正常位置同步有限观察完成 | `488dd313bc13` / `d02f621` | 按示例保存身份断言及 `c.ID()` 单行修复；本人操作双客户端并正确解释身份与坐标来源 | 上游协议/游戏复用；AI 提取处理函数、搭建网络外壳、讲解及验证 | [修复前失败](evidence/a12-cursor-before-fix-20261111-01/targeted-test.log)、[修复后通过](evidence/a12-cursor-after-fix-20261111-01/targeted-test.log)、[联机画面](evidence/a12-cursor-manual-20261111-01/02-two-clients-after-bob-move.png) |
 | A2（指导下完成，阶段已结束） | 单对局生命周期、固定名单及连接身份隔离 | `d02f621` / `5e47ebf`、`e3413e3`，已推送个人 origin/main | Gemini 下早期实现；本聊天 TODO 核心业务、编号复用断言及提示下概念复盘 | 上游架构复用；AI 讲解、测试外壳、诊断及验证 | [复用回归对照](evidence/a2-session-regression-20261114-01/)、[综合验收](evidence/a2-acceptance-20261114-01/)、[推送回执](evidence/a2-push-20261114-01/) |
+| A3（指导下完成，已推送） | MySQL 事务结算、防重复、详情及有限分页查询 | `e3413e3` / `36e97a5`，已推送个人 origin/main | 建表 SQL、连接探测、事务保存、详情/分页查询及 HTTP 路由接线 | 上游游戏与协议复用；AI 搭建本机 MySQL/试玩前端、审查与联调验证 | [事务验证](evidence/a3-match-write-20261119-02/verification.log)、[A3 综合验收](evidence/a3-acceptance-20261123-01/verification.log) |
+| A4（本机验收完成，已交付） | 单房间交付验收、R8 跨玩家撤旗修复及断库故障观察 | `36e97a5` / 随本批推送个人 `origin/main` | 提示下完成 `Flag` 归属修复、交叉场景/下溢边界推演与 `TestCrossPlayerUnflagDecrementsOriginalOwner` | 上游架构复用；AI 陪玩联机、启停复现、审查及证据归档 | [A4 验收证据](evidence/a4-acceptance-20261127-01/verification.log)、[全库日志](evidence/a4-acceptance-20261127-01/full-tests.log) |

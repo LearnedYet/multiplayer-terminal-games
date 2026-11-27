@@ -434,6 +434,7 @@ func (g *Game) Flag(playerID, x, y uint8) []protocol.MineChange {
 
 	case StateFlagged:
 		cell.State = StateHidden
+		flaggedBy := cell.FlaggedBy
 		cell.FlaggedBy = 0
 		g.FlagsLeft++
 		newState = StateHidden
@@ -441,7 +442,7 @@ func (g *Game) Flag(playerID, x, y uint8) []protocol.MineChange {
 		_ = newState
 
 		for _, p := range g.Players {
-			if p.ID == playerID && p.Flags > 0 {
+			if p.ID == flaggedBy && p.Flags > 0 {
 				p.Flags--
 				break
 			}

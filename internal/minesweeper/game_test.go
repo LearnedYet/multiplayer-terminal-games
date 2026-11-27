@@ -270,3 +270,18 @@ func TestSnapshotResultCopiesPlayers(t *testing.T) {
 		t.Fatalf("玩家%d离开了", 0)
 	}
 }
+
+func TestCrossPlayerUnflagDecrementsOriginalOwner(t *testing.T) {
+	// TODO：创建 ModeCooperative 棋局，并加入 0 号玩家 "alice" 和 1 号玩家 "bob"
+	g := newTestMineGame(ModeCooperative)
+	g.AddPlayer(0, "alice")
+	g.AddPlayer(1, "bob")
+
+	// TODO：让 1 号玩家 (bob) 在 (0, 0) 插旗，再让 0 号玩家 (alice) 在 (0, 0) 拔掉这面旗
+	g.Flag(1, 0, 0)
+	g.Flag(0, 0, 0)
+	// TODO：检查 alice 和 bob 的 Flags 都应为 0（如果还是旧代码，bob 的 Flags 会留在 1）
+	if g.Players[0].Flags != 0 || g.Players[1].Flags != 0 {
+		t.Fatalf("插旗数错误,期望是0号玩家是:0 1号玩家是:0,实际是: %d,%d", g.Players[0].Flags, g.Players[1].Flags)
+	}
+}

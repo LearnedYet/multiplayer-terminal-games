@@ -1,0 +1,24 @@
+batch: a4-acceptance-20261127-01
+conversation_id: b1b14ae0-5712-4327-b588-1fff242abe19
+date: 2026-11-27
+
+1. 完整路径与重启恢复（8093 + MySQL 8.4.13 on 127.0.0.1:13306）
+- 合作对局：玩家（房主）+ AI搭档（浏览器代理）。AI搭档插旗 1、翻格 1 后主动离开（hub unregistered id=1），玩家继续完成对局并获胜，70 + 1 = 71 安全格。
+- MySQL 实查（YGXQJO6XJI7VYGQQCCO4N5VS2E）：match_results won=1, canceled=0；match_players id=0 玩家 reveals=70 flags=9 left_early=0，id=1 AI搭档 reveals=1 flags=1 left_early=1。
+- 重启 8093（task-66 -> task-115）后刷新 /history.html 与单局详情，已持久化战绩保留。
+
+2. R8 跨玩家撤旗修复与实测
+- 修复前复现（8093 浏览器）：玩家B 插 1 旗、玩家A 拔掉同一格后，战绩详情中玩家B 仍为 1。
+- 用户修改 internal/minesweeper/game.go (Flag case StateFlagged)：先保存 flaggedBy := cell.FlaggedBy 再清零 cell.FlaggedBy = 0，循环改为匹配 p.ID == flaggedBy && p.Flags > 0。
+- 用户补充 internal/minesweeper/game_test.go：TestCrossPlayerUnflagDecrementsOriginalOwner。
+- 修复后复测（8093 重新编译启动 task-151）：玩家B 插旗、玩家A 拔掉后，战绩详情双方插旗数均为 0。
+
+3. 断库故障与恢复观察
+- 停止本机 MySQL（PID 27048 normal shutdown，13306 无监听）期间保持 8093 运行：
+  - task-151 日志：01:10:40 踩雷结束 -> 01:10:43 记录写入失败（对局 JTHBPLKWQCAXTGRUBEQSRYOQFG 写入数据库失败：dial tcp 127.0.0.1:13306: connectex: No connection could be made...），服务继续返回大厅并重新开放（01:10:43 扫雷：大厅已开放），未崩溃。
+  - 用户确认页面端继续开局可用；战绩查询返回失败但未影响大厅循环。
+- 重启本机 MySQL（13306 恢复监听，match_results 共 8 条记录）后，无需重启 8093 即恢复查询。
+
+4. 自动测试与构建
+- 见同目录 full-tests.log：全库 44 项顶层测试（含 TestCrossPlayerUnflagDecrementsOriginalOwner）全部 PASS，0 SKIP，0 FAIL；go build -mod=readonly ./... 退出 0。
+- 限制：未执行 -race、压测或跨机网络测试；断库期间未入库对局（JTHBPLKWQCAXTGRUBEQSRYOQFG）按首版设计仅留内存、不自动补写。
