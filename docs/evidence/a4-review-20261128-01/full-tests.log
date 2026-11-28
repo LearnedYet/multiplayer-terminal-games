@@ -1,0 +1,150 @@
+Command: go test -mod=readonly ./... -count=1 -v -timeout=60s
+?   	github.com/siyad01/multiplayer-terminal-games/cmd/client	[no test files]
+=== RUN   TestMineCursorUsesConnectionIdentity
+2026/11/28 00:43:09 hub started
+2026/11/28 00:43:09 hub: registered (id=0 name=alice total=1)
+2026/11/28 00:43:09 hub: registered (id=1 name=bob total=2)
+    main_test.go:109: aliceID=0 bobID=1 received={PlayerID:0 SessionID:1 Action:2 X:3 Y:4}
+2026/11/28 00:43:09 hub: unregistered (id=0 total=1)
+2026/11/28 00:43:09 hub: unregistered (id=1 total=0)
+--- PASS: TestMineCursorUsesConnectionIdentity (0.02s)
+PASS
+ok  	github.com/siyad01/multiplayer-terminal-games/cmd/mineserver	0.885s
+?   	github.com/siyad01/multiplayer-terminal-games/cmd/server	[no test files]
+?   	github.com/siyad01/multiplayer-terminal-games/internal/client	[no test files]
+=== RUN   TestFirstClickSafe
+--- PASS: TestFirstClickSafe (0.00s)
+=== RUN   TestFlagToggle
+--- PASS: TestFlagToggle (0.00s)
+=== RUN   TestRevealedCantBeFlagged
+--- PASS: TestRevealedCantBeFlagged (0.00s)
+=== RUN   TestFloodFillRevealsMultiple
+--- PASS: TestFloodFillRevealsMultiple (0.00s)
+=== RUN   TestFlagsLeft
+--- PASS: TestFlagsLeft (0.00s)
+=== RUN   TestMultiplayerCursors
+--- PASS: TestMultiplayerCursors (0.00s)
+=== RUN   TestGameOverOnMine
+--- PASS: TestGameOverOnMine (0.00s)
+=== RUN   TestNoRevealAfterGameOver
+--- PASS: TestNoRevealAfterGameOver (0.00s)
+=== RUN   TestVisibleCellsHidesMines
+--- PASS: TestVisibleCellsHidesMines (0.00s)
+=== RUN   TestPlayerLeaveRetainsScore
+--- PASS: TestPlayerLeaveRetainsScore (0.00s)
+=== RUN   TestLeftPlayerCannotFlag
+--- PASS: TestLeftPlayerCannotFlag (0.00s)
+=== RUN   TestLeftPlayerCannotMoveCursor
+--- PASS: TestLeftPlayerCannotMoveCursor (0.00s)
+=== RUN   TestSnapshotResultCopiesPlayers
+--- PASS: TestSnapshotResultCopiesPlayers (0.00s)
+=== RUN   TestCrossPlayerUnflagDecrementsOriginalOwner
+--- PASS: TestCrossPlayerUnflagDecrementsOriginalOwner (0.00s)
+=== RUN   TestRunOnceRejectsReusedConnection
+2026/11/28 00:43:09 扫雷：大厅已开放
+2026/11/28 00:43:09 扫雷：开局，模式编号=1，难度=easy，玩家数=2
+2026/11/28 00:43:09 扫雷：棋盘 9×9，地雷数=10
+2026/11/28 00:43:09 扫雷：玩家 1 已离开本局
+2026/11/28 00:43:09 扫雷：玩家 0 已离开本局
+2026/11/28 00:43:09 扫雷：全员离开，对局已取消，对局编号=fixed-roster
+    loop_test.go:13: lateAccepted=false endedEarly=false result=&{GameID:fixed-roster Won:false Cancel:true PlayerResult:[{ID:0 Name:Alice Reveals:0 Flags:1 Left:true} {ID:1 Name:Bob Reveals:0 Flags:0 Left:true}]}
+--- PASS: TestRunOnceRejectsReusedConnection (0.02s)
+PASS
+ok  	github.com/siyad01/multiplayer-terminal-games/internal/minesweeper	0.333s
+=== RUN   TestJoinRoundTrip
+--- PASS: TestJoinRoundTrip (0.00s)
+=== RUN   TestInputRoundTrip
+--- PASS: TestInputRoundTrip (0.00s)
+=== RUN   TestGameStateRoundTrip
+--- PASS: TestGameStateRoundTrip (0.00s)
+=== RUN   TestErrorRoundTrip
+--- PASS: TestErrorRoundTrip (0.00s)
+=== RUN   TestInvalidInput
+--- PASS: TestInvalidInput (0.00s)
+=== RUN   TestLongNameTruncated
+--- PASS: TestLongNameTruncated (0.00s)
+=== RUN   TestMineCellEncoding
+--- PASS: TestMineCellEncoding (0.00s)
+=== RUN   TestMineStateRoundTrip
+--- PASS: TestMineStateRoundTrip (0.00s)
+=== RUN   TestMineUpdateRoundTrip
+--- PASS: TestMineUpdateRoundTrip (0.00s)
+=== RUN   TestCursorRoundTrip
+--- PASS: TestCursorRoundTrip (0.00s)
+=== RUN   TestExplodeRoundTrip
+--- PASS: TestExplodeRoundTrip (0.00s)
+=== RUN   TestSetMineModeRoundTrip
+--- PASS: TestSetMineModeRoundTrip (0.00s)
+PASS
+ok  	github.com/siyad01/multiplayer-terminal-games/internal/protocol	0.279s
+=== RUN   TestHubRegisterAssignsLowestID
+2026/11/28 00:43:09 hub started
+2026/11/28 00:43:09 hub: registered (id=0 name=alice total=1)
+2026/11/28 00:43:09 hub: registered (id=1 name=bob total=2)
+--- PASS: TestHubRegisterAssignsLowestID (0.05s)
+=== RUN   TestHubIDRecycling
+2026/11/28 00:43:09 hub started
+2026/11/28 00:43:09 hub: registered (id=0 name=alice total=1)
+2026/11/28 00:43:09 hub: unregistered (id=0 total=0)
+2026/11/28 00:43:09 hub: registered (id=0 name=bob total=1)
+--- PASS: TestHubIDRecycling (0.09s)
+=== RUN   TestHubBroadcastReachesAllClients
+2026/11/28 00:43:09 hub started
+2026/11/28 00:43:09 hub: registered (id=0 name=alice total=1)
+2026/11/28 00:43:09 hub: registered (id=1 name=bob total=2)
+--- PASS: TestHubBroadcastReachesAllClients (0.12s)
+=== RUN   TestHubMaxPlayers
+2026/11/28 00:43:09 hub started
+2026/11/28 00:43:09 hub: registered (id=0 name=p0 total=1)
+2026/11/28 00:43:09 hub: registered (id=1 name=p1 total=2)
+2026/11/28 00:43:09 hub: registered (id=2 name=p2 total=3)
+2026/11/28 00:43:09 hub: registered (id=3 name=p3 total=4)
+2026/11/28 00:43:09 hub: rejected — server full
+--- PASS: TestHubMaxPlayers (0.10s)
+=== RUN   TestHubForwardSetModeSendsMessage
+--- PASS: TestHubForwardSetModeSendsMessage (0.00s)
+PASS
+ok  	github.com/siyad01/multiplayer-terminal-games/internal/server	0.803s
+=== RUN   TestNewGameHasFood
+--- PASS: TestNewGameHasFood (0.00s)
+=== RUN   TestSnakeMoves
+--- PASS: TestSnakeMoves (0.00s)
+=== RUN   TestSnakeGrowsOnFood
+--- PASS: TestSnakeGrowsOnFood (0.00s)
+=== RUN   TestSnakeDiesOnWall
+--- PASS: TestSnakeDiesOnWall (0.00s)
+=== RUN   TestNo180Reversal
+--- PASS: TestNo180Reversal (0.00s)
+=== RUN   TestMaxPlayers
+--- PASS: TestMaxPlayers (0.00s)
+=== RUN   TestBoardReflectsState
+--- PASS: TestBoardReflectsState (0.00s)
+=== RUN   TestScoreMatchesGrowth
+--- PASS: TestScoreMatchesGrowth (0.00s)
+=== RUN   TestFoodEatingAllDirections
+=== RUN   TestFoodEatingAllDirections/right
+=== RUN   TestFoodEatingAllDirections/left
+=== RUN   TestFoodEatingAllDirections/down
+=== RUN   TestFoodEatingAllDirections/up
+--- PASS: TestFoodEatingAllDirections (0.00s)
+    --- PASS: TestFoodEatingAllDirections/right (0.00s)
+    --- PASS: TestFoodEatingAllDirections/left (0.00s)
+    --- PASS: TestFoodEatingAllDirections/down (0.00s)
+    --- PASS: TestFoodEatingAllDirections/up (0.00s)
+=== RUN   TestLoopTicksBroadcast
+2026/11/28 00:43:09 game loop: lobby open
+2026/11/28 00:43:09 game loop: player 0 (test) is host
+2026/11/28 00:43:09 game loop: player 0 (test) joined lobby (1)
+2026/11/28 00:43:09 game loop: starting — mode=1 players=1
+2026/11/28 00:43:09 game loop: ticking level 1 mode 1
+--- PASS: TestLoopTicksBroadcast (0.07s)
+=== RUN   TestLoopInputProcessed
+2026/11/28 00:43:09 game loop: lobby open
+2026/11/28 00:43:09 game loop: player 0 (inputtest) is host
+2026/11/28 00:43:09 game loop: player 0 (inputtest) joined lobby (1)
+2026/11/28 00:43:09 game loop: starting — mode=1 players=1
+2026/11/28 00:43:09 game loop: ticking level 1 mode 1
+--- PASS: TestLoopInputProcessed (0.20s)
+PASS
+ok  	github.com/siyad01/multiplayer-terminal-games/internal/snake	0.518s
+Exit: 0

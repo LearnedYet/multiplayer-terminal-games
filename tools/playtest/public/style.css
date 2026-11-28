@@ -82,6 +82,11 @@ h2 { font-size: 1rem; }
 .lobby .muted { color: #d5dfcc; font-size: .88rem; line-height: 1.55; }
 .lobby form { width: min(100%, 340px); display: grid; gap: 6px; text-align: start; margin-top: 7px; }
 .lobby label { font-size: .8rem; color: #e2ebd8; }
+.room-badge { font-size: .78rem; font-weight: 700; padding: 2px 8px; border-radius: 999px; background: #dfe8d3; color: #263722; vertical-align: middle; margin-left: 6px; }
+.room-toggle { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 4px; }
+.room-btn { border: 1px solid #6b8875; border-radius: 8px; padding: 8px 10px; background: #233c32; color: #dce7d5; font-weight: 600; cursor: pointer; }
+.room-btn[aria-pressed="true"] { background: var(--accent); color: #263722; border-color: #bdcf89; font-weight: 750; }
+.invite-links { display: grid; gap: 6px; }
 .join-row { display: grid; grid-template-columns: 1fr auto; gap: 7px; }
 input { width: 100%; min-width: 0; border: 1px solid #a2b198; border-radius: 8px; padding: 9px 10px; color: var(--ink); background: #fbfcf8; }
 .primary { border: 1px solid #bdcf89; border-radius: 8px; padding: 9px 13px; background: var(--accent); color: #263722; font-weight: 750; }

@@ -662,6 +662,19 @@ go run ./cmd/client -name bob
 - 断库故障观察：保留 `8093` 运行并正常停止 MySQL，本局 `JTHBPLKWQCAXTGRUBEQSRYOQFG` 结束 3 秒后日志记录写库失败（`dial tcp 127.0.0.1:13306: connectex`），服务未崩溃并重新开放大厅；重拉 MySQL（13306，`match_results` 共 8 条）后无需重启 `8093` 即恢复查询。
 - 全库验证（Go 1.27.3 / Windows amd64 / `GOWORK=off`）：`go test -mod=readonly ./... -count=1 -v -timeout=60s` 为 44 项顶层 PASS、0 SKIP、0 FAIL，`go build -mod=readonly ./...` 退出 0。见 [A4 验收记录](evidence/a4-acceptance-20261127-01/verification.log) 及 [全库测试日志](evidence/a4-acceptance-20261127-01/full-tests.log)。未执行 `-race`、压力或跨机器测试；断库期间未落库对局按首版取舍仅留内存。
 
+## A4 交付后独立复核（2026-11-28）
+
+- 用户报告在 Gemini 帮助下完成并推送 A4。本轮以 `36e97a5` 为基准阅读 `fc8c71c` 的规则和回归测试及 `94951ca` 的 README。`git ls-remote --exit-code origin refs/heads/main` 返回 `94951ca9ede8a52f65e03d016b862b5a1ad85bbc`，与本机 HEAD 一致。核心贡献归属沿用上一节，本轮由 Codex 执行只读实现审查和验证辅助。
+- Windows amd64、Go 1.27.3、`GOWORK=off`。相同 `TestCrossPlayerUnflagDecrementsOriginalOwner` 在 `-overlay` 仅替换为 `36e97a5` 的 `game.go` 时，记录双方计数 `0,1` 并退出 1，当前通过并退出 0。另用仓库外临时替换文件令 `Flag` 不改变状态，该定向测试仍通过，确认当前断言仅覆盖操作后计数，不核对插旗是否发生。全库 44 项顶层测试通过，`go build -mod=readonly ./...` 退出 0。[命令与原始输出](evidence/a4-review-20261128-01/)
+- 本轮沿用 2026-11-27 的浏览器联机、MySQL 断库及重启回查证据，未重新执行这些场景或 `-race`。Go 源码、测试与 README 未修改，复核只增加本地证据与交接记录。
+
+## A5 双房间隔离与验收（2026-11-28）
+
+- 批次：`a5-acceptance-20261128-01`；执行对话：`b1b14ae0-5712-4327-b588-1fff242abe19`。
+- 穿帮复现与后端分房实现：AI 在试玩前端（`tools/playtest/public/`）加入 `1 号房 / 2 号房` 选房界面后，用户在未改后端的 `8093` 上复现选 2 号房仍进入同一大厅。随后 AI 将 `cmd/mineserver/main.go` 单房通道样板提取为 `mineRoom` / `startMineRoom`，用户在指导下填写 `rooms` 固定双房映射（`"1"`、`"2"`）、`mineRoomWSHandler` 参数解析（空值默认 `"1"`，未知返回 `400`）、`/ws` 路由与停机遍历 `<-room.done`。
+- 4 客户端实机联调与 MySQL 实查：在 `8093` 与本机 MySQL 8.4.13 下，用户操作 4 个浏览器标签页分两组进 1 号房（`玩家`、`搭档`）与 2 号房（`二号房玩家`、`搭档2`）同时开局。房间 2 玩家 1 踩雷结束并写入 MySQL（`5VG2HH6B4F35FCRM2TVYPNZ2Q2`，`won=0`、`canceled=0`，`搭档2` reveals=46）且房间 2 重开大厅，期间房间 1 保持独立运行未受影响。
+- 自动化测试与构建（Go 1.27.3 / Windows amd64 / `GOWORK=off`）：`TestMineRoomRoutingIsolatesRooms` 中未知房间 99 返回 400 的状态码判断由用户编写，其余 4 客户端 WebSocket 测试框架与跨房/插旗/停机退出断言由 AI 辅助补全（解决 `gorilla/websocket` 读超时破坏连接句柄后改为协程读通道）。`go test -mod=readonly ./... -count=1 -v -timeout=60s` 全库 45 项顶层测试全部 PASS（0 SKIP、0 FAIL），`go build -mod=readonly ./...` 退出 0。见 [A5 验收记录](evidence/a5-acceptance-20261128-01/verification.log) 与 [全库日志](evidence/a5-acceptance-20261128-01/full-tests.log)。未执行 `-race`、动态建房销房或跨机器测试。
+
 ## 个人贡献索引
 
 以下只记录实际发生的贡献与验证，并标明指导与独立修改的范围；Phase 0 文档成果仍按上面的事实说明归属。
@@ -672,4 +685,5 @@ go run ./cmd/client -name bob
 | A1.2-R4（指导下完成，已交付） | 光标身份来源修复，自动验证及正常位置同步有限观察完成 | `488dd313bc13` / `d02f621` | 按示例保存身份断言及 `c.ID()` 单行修复；本人操作双客户端并正确解释身份与坐标来源 | 上游协议/游戏复用；AI 提取处理函数、搭建网络外壳、讲解及验证 | [修复前失败](evidence/a12-cursor-before-fix-20261111-01/targeted-test.log)、[修复后通过](evidence/a12-cursor-after-fix-20261111-01/targeted-test.log)、[联机画面](evidence/a12-cursor-manual-20261111-01/02-two-clients-after-bob-move.png) |
 | A2（指导下完成，阶段已结束） | 单对局生命周期、固定名单及连接身份隔离 | `d02f621` / `5e47ebf`、`e3413e3`，已推送个人 origin/main | Gemini 下早期实现；本聊天 TODO 核心业务、编号复用断言及提示下概念复盘 | 上游架构复用；AI 讲解、测试外壳、诊断及验证 | [复用回归对照](evidence/a2-session-regression-20261114-01/)、[综合验收](evidence/a2-acceptance-20261114-01/)、[推送回执](evidence/a2-push-20261114-01/) |
 | A3（指导下完成，已推送） | MySQL 事务结算、防重复、详情及有限分页查询 | `e3413e3` / `36e97a5`，已推送个人 origin/main | 建表 SQL、连接探测、事务保存、详情/分页查询及 HTTP 路由接线 | 上游游戏与协议复用；AI 搭建本机 MySQL/试玩前端、审查与联调验证 | [事务验证](evidence/a3-match-write-20261119-02/verification.log)、[A3 综合验收](evidence/a3-acceptance-20261123-01/verification.log) |
-| A4（本机验收完成，已交付） | 单房间交付验收、R8 跨玩家撤旗修复及断库故障观察 | `36e97a5` / 随本批推送个人 `origin/main` | 提示下完成 `Flag` 归属修复、交叉场景/下溢边界推演与 `TestCrossPlayerUnflagDecrementsOriginalOwner` | 上游架构复用；AI 陪玩联机、启停复现、审查及证据归档 | [A4 验收证据](evidence/a4-acceptance-20261127-01/verification.log)、[全库日志](evidence/a4-acceptance-20261127-01/full-tests.log) |
+| A4（指导下完成，已推送） | 单房间交付验收、R8 跨玩家撤旗修复及断库故障观察 | `36e97a5` / `fc8c71c`、`94951ca` | 提示下完成 `Flag` 归属修复、交叉场景/下溢边界推演与 `TestCrossPlayerUnflagDecrementsOriginalOwner` | 上游架构复用；AI 陪玩联机、启停复现、审查及证据归档；Codex 交付后复核 | [A4 验收证据](evidence/a4-acceptance-20261127-01/verification.log)、[交付后复核](evidence/a4-review-20261128-01/) |
+| A5（本机验收完成，待提交） | 固定双房间路由、独立循环隔离与 4 端联调 | `94951ca` / 当前工作区未提交 | 提示下完成 `rooms` 映射、`mineRoomWSHandler`、停机等待、400 断言及 4 端实机联调 | 上游 `Loop`/`Hub` 复用；AI 提取 `startMineRoom`、搭建选房前端与 4 客户端集成测试 | [A5 验收证据](evidence/a5-acceptance-20261128-01/verification.log)、[全库日志](evidence/a5-acceptance-20261128-01/full-tests.log) |

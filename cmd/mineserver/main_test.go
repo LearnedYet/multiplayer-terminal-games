@@ -1,6 +1,7 @@
 package main
 
 import (
+	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
@@ -111,4 +112,165 @@ func TestMineCursorUsesConnectionIdentity(t *testing.T) {
 	if msg.PlayerID != aliceID {
 		t.Fatalf("玩家编号不对 : 期望%d,实际%d", aliceID, msg.PlayerID)
 	}
+}
+
+func TestMineRoomRoutingIsolatesRooms(t *testing.T) {
+	// AI 辅助搭建双房间测试服务与连接辅助函数；核心断言由学习者在下面 TODO(1)-(3) 补全。
+	stopCh := make(chan struct{})
+	rooms := map[string]*mineRoom{
+		"1": startMineRoom("1", stopCh, nil),
+		"2": startMineRoom("2", stopCh, nil),
+	}
+	testServer := httptest.NewServer(mineRoomWSHandler(rooms))
+	t.Cleanup(func() {
+		testServer.Close()
+		close(stopCh)
+		for id, room := range rooms {
+			select {
+			case <-room.done:
+			case <-time.After(mineWSTestTimeout):
+				t.Errorf("房间 %s 循环未在停机后退出", id)
+			}
+		}
+	})
+
+	dialRoom := func(name, roomQuery string) (*websocket.Conn, <-chan []byte) {
+		t.Helper()
+		dialer := websocket.Dialer{HandshakeTimeout: mineWSTestTimeout}
+		wsURL := "ws" + strings.TrimPrefix(testServer.URL, "http") + "/ws?name=" + name
+		if roomQuery != "" {
+			wsURL += "&room=" + roomQuery
+		}
+		conn, _, err := dialer.Dial(wsURL, nil)
+		if err != nil {
+			t.Fatalf("连接 %s (room=%s) 失败：%v", name, roomQuery, err)
+		}
+		t.Cleanup(func() { _ = conn.Close() })
+		ch := make(chan []byte, 32)
+		go func() {
+			defer close(ch)
+			for {
+				_, data, err := conn.ReadMessage()
+				if err != nil {
+					return
+				}
+				ch <- data
+			}
+		}()
+		return conn, ch
+	}
+
+	waitLobbyCount := func(ch <-chan []byte, wantCount uint8) {
+		t.Helper()
+		timer := time.NewTimer(mineWSTestTimeout)
+		defer timer.Stop()
+		for {
+			select {
+			case data, ok := <-ch:
+				if !ok {
+					t.Fatalf("等待大厅人数 %d 时连接关闭", wantCount)
+				}
+				if len(data) >= 3 && protocol.MsgType(data[0]) == protocol.MsgLobbyState && data[2] == wantCount {
+					return
+				}
+			case <-timer.C:
+				t.Fatalf("超时未收到人数为 %d 的大厅状态", wantCount)
+			}
+		}
+	}
+
+	waitForMsgType := func(ch <-chan []byte, want protocol.MsgType) {
+		t.Helper()
+		timer := time.NewTimer(mineWSTestTimeout)
+		defer timer.Stop()
+		for {
+			select {
+			case data, ok := <-ch:
+				if !ok {
+					t.Fatalf("等待消息类型 %#x 时连接关闭", byte(want))
+				}
+				if len(data) >= 1 && protocol.MsgType(data[0]) == want {
+					return
+				}
+			case <-timer.C:
+				t.Fatalf("超时未收到消息类型 %#x", byte(want))
+			}
+		}
+	}
+
+	ensureNoMsgType := func(ch <-chan []byte, forbidden protocol.MsgType) {
+		t.Helper()
+		timer := time.NewTimer(150 * time.Millisecond)
+		defer timer.Stop()
+		for {
+			select {
+			case data, ok := <-ch:
+				if !ok {
+					t.Fatalf("检查无跨房串扰消息时连接意外关闭")
+				}
+				if len(data) >= 1 && protocol.MsgType(data[0]) == forbidden {
+					t.Fatalf("发生跨房串扰：不应收到消息类型 %#x", byte(forbidden))
+				}
+			case <-timer.C:
+				return
+			}
+		}
+	}
+
+	// 验证 1（未知房间返回 400；核心断言由用户写出期望状态码判断）。
+	resp, err := http.Get(testServer.URL + "/ws?name=bad&room=99")
+	if err != nil {
+		t.Fatalf("请求未知房间失败：%v", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusBadRequest {
+		t.Fatalf("错误房间号不应该被访问 房间号: %d", 99)
+	}
+
+	// 连接 1 号房两名玩家与 2 号房两名玩家，确认各自大厅人数都是 2（不串房）。
+	r1a, r1aMsgs := dialRoom("r1a", "1")
+	r1b, r1bMsgs := dialRoom("r1b", "1")
+	waitLobbyCount(r1aMsgs, 2)
+	waitLobbyCount(r1bMsgs, 2)
+
+	r2a, r2aMsgs := dialRoom("r2a", "2")
+	_, r2bMsgs := dialRoom("r2b", "2")
+	waitLobbyCount(r2aMsgs, 2)
+	waitLobbyCount(r2bMsgs, 2)
+
+	// 1 号房房主切换合作模式并开局。
+	if err := r1a.WriteMessage(websocket.BinaryMessage, protocol.EncodeSetMineMode(1, "easy")); err != nil {
+		t.Fatalf("1 号房设置模式失败：%v", err)
+	}
+	if err := r1a.WriteMessage(websocket.BinaryMessage, protocol.EncodeStartGame()); err != nil {
+		t.Fatalf("1 号房开局失败：%v", err)
+	}
+
+	// 验证 2：1 号房开局时，1 号房搭档收到棋盘而 2 号房玩家不会收到开局消息。
+	waitForMsgType(r1bMsgs, protocol.MsgMineState)
+	ensureNoMsgType(r2aMsgs, protocol.MsgMineState)
+
+	// 2 号房也开局。
+	if err := r2a.WriteMessage(websocket.BinaryMessage, protocol.EncodeSetMineMode(1, "easy")); err != nil {
+		t.Fatalf("2 号房设置模式失败：%v", err)
+	}
+	if err := r2a.WriteMessage(websocket.BinaryMessage, protocol.EncodeStartGame()); err != nil {
+		t.Fatalf("2 号房开局失败：%v", err)
+	}
+	waitForMsgType(r2aMsgs, protocol.MsgMineState)
+	waitForMsgType(r2bMsgs, protocol.MsgMineState)
+
+	// 1 号房全员断开取消本局并回到大厅。
+	_ = r1a.Close()
+	_ = r1b.Close()
+
+	// 验证 3：1 号房全退重开期间，2 号房依然可以正常插旗并收到更新。
+	if err := r2a.WriteMessage(websocket.BinaryMessage, protocol.EncodeFlag(0, 0)); err != nil {
+		t.Fatalf("2 号房插旗失败：%v", err)
+	}
+	waitForMsgType(r2bMsgs, protocol.MsgMineUpdate)
+
+	// 确认 1 号房清空后可重新接纳新玩家进入干净大厅。
+	_, r1cMsgs := dialRoom("r1c", "1")
+	waitLobbyCount(r1cMsgs, 1)
 }

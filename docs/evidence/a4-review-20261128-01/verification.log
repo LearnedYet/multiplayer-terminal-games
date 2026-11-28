@@ -1,0 +1,10 @@
+HEAD: 94951ca9ede8a52f65e03d016b862b5a1ad85bbc
+GOWORK=off
+go version go1.27.3 windows/amd64
+Baseline overlay: game.go from 36e97a5 and unchanged A4 test; exit 1.
+Current targeted test: exit 0.
+Counterexample overlay: Flag returns nil without changing game; exit 0.
+Current suite: 44 top-level PASS, exit 0.
+Build: exit 0.
+Overlays and alternate sources: C:\Users\c8618\AppData\Local\Temp\goa-a4-review-001f94d5299f44a796ba18d58a3df74f (temporary, outside the repository).
+No edits to project Go files; browser/MySQL and -race not rerun in this batch.

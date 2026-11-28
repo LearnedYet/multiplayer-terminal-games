@@ -24,7 +24,7 @@
     <section class="game" aria-labelledby="title">
       <div class="titlebar">
         <div>
-          <h1 id="title">合作扫雷</h1>
+          <h1 id="title">合作扫雷 <small id="room-badge" class="room-badge">1 号房</small></h1>
           <p class="muted">简单 · 9 × 9 · 10 雷</p>
         </div>
         <div class="flag-count" id="flag-count" hidden><span aria-hidden="true">⚑</span> <strong id="flags"></strong><span> 面可用</span></div>
@@ -36,6 +36,11 @@
           <h2 id="lobby-title">找个搭档，开一局</h2>
           <p class="muted" id="lobby-hint">两个人共享一张棋盘，一起排雷。</p>
           <form id="join-form">
+            <label>选择房间</label>
+            <div class="room-toggle" id="room-toggle" role="group" aria-label="选择房间">
+              <button type="button" class="room-btn" data-room="1" aria-pressed="true">1 号房</button>
+              <button type="button" class="room-btn" data-room="2" aria-pressed="false">2 号房</button>
+            </div>
             <label for="player-name">你的昵称</label>
             <div class="join-row">
               <input id="player-name" name="name" maxlength="15" autocomplete="off" required>
@@ -64,7 +69,10 @@
           <span id="player-count" class="player-count">0 人</span>
         </div>
         <ul id="players" class="players" aria-label="玩家名单"></ul>
-        <a class="invite" href="/?player=搭档" target="_blank" rel="noopener">在新标签页打开第二个玩家 <span aria-hidden="true">↗</span></a>
+        <div class="invite-links">
+          <a class="invite" id="invite-same" href="/?player=搭档&room=1" target="_blank" rel="noopener">新标签页打开 1 号房搭档 <span aria-hidden="true">↗</span></a>
+          <a class="invite" href="/?player=二号房玩家&room=2" target="_blank" rel="noopener">新标签页打开 2 号房玩家 <span aria-hidden="true">↗</span></a>
+        </div>
       </section>
       <section class="panel notice" aria-live="polite">
         <h2 id="notice-title">等你开局</h2>

@@ -1,0 +1,8 @@
+Command: go test -mod=readonly -overlay C:\Users\c8618\AppData\Local\Temp\goa-a4-review-001f94d5299f44a796ba18d58a3df74f\a3-overlay.json ./internal/minesweeper -run ^TestCrossPlayerUnflagDecrementsOriginalOwner$ -count=1 -v -timeout=30s
+=== RUN   TestCrossPlayerUnflagDecrementsOriginalOwner
+    game_test.go:285: 插旗数错误,期望是0号玩家是:0 1号玩家是:0,实际是: 0,1
+--- FAIL: TestCrossPlayerUnflagDecrementsOriginalOwner (0.00s)
+FAIL
+FAIL	github.com/siyad01/multiplayer-terminal-games/internal/minesweeper	0.370s
+FAIL
+Exit: 1

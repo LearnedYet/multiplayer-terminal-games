@@ -9,11 +9,11 @@
 
 </div>
 
-> 本仓库 Fork 自 [siyad01/multiplayer-terminal-games](https://github.com/siyad01/multiplayer-terminal-games)（Apache-2.0）。在保留原项目终端客户端、二进制协议与单 goroutine 状态所有权模型的基础上，围绕 **Minesweeper 单房间合作模式（Cooperative / Easy）** 完成连接身份隔离、单局生命周期重构、MySQL 事务结算、HTTP 战绩查询与本地浏览器试玩联调。
+> 本仓库 Fork 自 [siyad01/multiplayer-terminal-games](https://github.com/siyad01/multiplayer-terminal-games)（Apache-2.0）。在保留原项目终端客户端、二进制协议与单 goroutine 状态所有权模型的基础上，围绕 **Minesweeper 合作模式（Cooperative / Easy）** 完成连接身份隔离、单局生命周期重构、MySQL 事务结算、HTTP 战绩查询、固定双房间隔离与本地浏览器试玩联调。
 
 ---
 
-## 二次开发核心改造（A1 – A4）
+## 二次开发核心改造（A1 – A5）
 
 - **输入信任边界与模式转发修复**
   - 修复 Snake 模式构造时遗漏保存 `setModeCh` 导致多人模式切换无效的缺陷，补充到达检查回归测试。
@@ -23,22 +23,25 @@
   - 实现开局锁定固定名单、玩家中途离开保留当前成绩并阻断后续操作、全员离开标记取消、结束生成不可变值拷贝快照（`SnapshotResult`）与随机唯一对局编号。
 - **MySQL 事务结算与 HTTP 查询接口**
   - 新增 [`db/schema.sql`](db/schema.sql)（`match_results`、`match_players` 双表，InnoDB 联合主键与外键约束）。
-  - 基于原生 `database/sql` 实现单事务原子落库与主键防重（1062），写入设置 3 秒超时并记录错误日志，数据库异常时不阻塞下一局大厅开放。
+  - 基于原生 `database/sql` 实现单事务原子落库与主键防重（1062）；同步写入设置 3 秒超时并记录错误日志，写入失败或超时后不中断后续对局循环。
   - 实现按对局查详情 `GET /matches/{gameID}` 与有界分页列表 `GET /matches?limit=...&offset=...`（限制每页 `1–50` 条、区分 400 / 404 / 500 状态），服务重启后已落库战绩可正常恢复查询。
+- **固定双房间并发隔离（A5）**
+  - 在服务端构建两个独立房间实例（`1` 号房、`2` 号房），各房维护独立的 `Hub`、消息通道与 `Loop` 协程，共用线程安全的 `*sql.DB` 落库与查询。
+  - 在 `/ws` 接入层按 URL 查询参数 `?room=` 路由连接（未传默认进 1 号房，未知房号直接返回 `400`），停机时等待所有房间循环安全退出再释放数据库连接。
 - **规则缺陷修复与回归保障**
-  - 独立定位并修复合作模式跨玩家撤旗扣错玩家计数的归属缺陷（`Flag` 中先保存原插旗者 `FlaggedBy` 再清零扣减，配合 `uint16` 防下溢保护），补充 `TestCrossPlayerUnflagDecrementsOriginalOwner` 回归测试并在浏览器端实测验证。
+  - 在指导下定位并修复合作模式跨玩家撤旗扣错玩家计数的归属缺陷（`Flag` 中先保存原插旗者 `FlaggedBy` 再清零扣减，配合 `uint16` 防下溢保护），补充 `TestCrossPlayerUnflagDecrementsOriginalOwner` 回归测试并在浏览器端实测验证。
 
 ### 当前范围与边界说明
 
-- **已实现与验证**：单房间 Cooperative / Easy 对局生命周期、连接身份隔离、MySQL 事务结算与详情/分页查询、本机断库降级与重启回查验证；全库 `44` 项单元测试通过。
-- **暂未实现（不作夸大声明）**：多房间并发隔离、Redis 缓存、用户注册登录体系与高并发压测指标。
+- **已实现与验证**：固定双房间 Cooperative / Easy 隔离、对局生命周期、连接身份隔离、MySQL 事务结算与详情/分页查询、本机断库降级与重启回查验证；全库 `45` 项单元测试与集成测试通过。
+- **暂未实现（不作夸大声明）**：动态多房间创建/销毁与跨房切换、Redis 缓存、用户注册登录体系及高并发压测指标。
 - **分工与验证证据**：详细改动追踪、人工与 AI 协作边界及原始测试日志见 [`docs/CURRENT_STATE.md`](docs/CURRENT_STATE.md) 与 [`docs/EVIDENCE.md`](docs/EVIDENCE.md)。
 
 ---
 
 ## 本地验证与试玩说明
 
-### 1. 运行全库测试（44 项）
+### 1. 运行全库测试（45 项）
 
 ```bash
 go test -mod=readonly ./... -count=1 -v

@@ -1,0 +1,17 @@
+batch: a5-acceptance-20261128-01
+conversation_id: b1b14ae0-5712-4327-b588-1fff242abe19
+date: 2026-11-28
+
+1. 穿帮复现与双房间核心修改
+- 前端准备：AI 在 tools/playtest/public/ 增加 1 号房 / 2 号房选择（/ws?name=...&room=...）；保持未改后端的 8093 运行时，用户亲眼复现“选 1 号房与 2 号房仍挤入同一大厅”。
+- 后端修改（cmd/mineserver/main.go）：AI 提取 mineRoom 结构体与 startMineRoom 工厂函数；用户在提示与 TODO 下完成 rooms 固定双房初始化（"1"、"2"）、/ws 路由接线、mineRoomWSHandler 读取 ?room= 参数（空值默认 "1"，未知房号返回 400）及停机遍历等待 <-room.done。
+
+2. 本人 4 客户端实机联调与 MySQL 验证（8093 + MySQL 8.4.13 on 127.0.0.1:13306）
+- 1 号房（id=0 玩家, id=1 搭档, total=2）与 2 号房（id=0 二号房玩家, id=1 搭档2, total=2）同时开局（04:03:58 与 04:04:03，Cooperative / Easy）。
+- 04:04:19 房间 2 的玩家 1 在 (1,5) 踩雷结束：日志记录 扫雷[房间2]：对局结束，相关玩家编号=1，保存对局 5VG2HH6B4F35FCRM2TVYPNZ2Q2 后 2 号房重新开放大厅，期间 1 号房保持独立运行未受干扰。
+- MySQL 实查：match_results 存在 5VG2HH6B4F35FCRM2TVYPNZ2Q2 (won=0, canceled=0)；match_players 含 id=0 二号房玩家 (reveals=0, flags=0, left_early=0) 与 id=1 搭档2 (reveals=46, flags=0, left_early=0)。
+
+3. 自动化测试与构建（cmd/mineserver/main_test.go + full-tests.log）
+- TestMineRoomRoutingIsolatesRooms：用户编写未知房间 99 返回 400 的状态码断言；AI 辅助搭建 4 客户端 WebSocket 测试外壳，补齐 err != nil 检查、1 号房开局不串扰 2 号房、1 号房全退重开时 2 号房照常插旗以及停机等待两房退出。
+- Go 1.27.3 / Windows amd64 / GOWORK=off：go test -mod=readonly ./... -count=1 -v -timeout=60s 全库 45 项顶层测试全部 PASS（0 SKIP、0 FAIL），go build -mod=readonly ./... 退出 0。
+- 限制：固定双房间不涉及动态建房/销房；Hub.Run 仍无独立退出通道（由进程退出回收）；未执行 -race、压力或跨机器联调。

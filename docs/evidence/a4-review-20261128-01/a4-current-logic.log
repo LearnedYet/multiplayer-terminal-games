@@ -1,0 +1,6 @@
+Command: go test -mod=readonly ./internal/minesweeper -run ^TestCrossPlayerUnflagDecrementsOriginalOwner$ -count=1 -v -timeout=30s
+=== RUN   TestCrossPlayerUnflagDecrementsOriginalOwner
+--- PASS: TestCrossPlayerUnflagDecrementsOriginalOwner (0.00s)
+PASS
+ok  	github.com/siyad01/multiplayer-terminal-games/internal/minesweeper	0.331s
+Exit: 0

@@ -1,0 +1,6 @@
+Command: go test -mod=readonly -overlay C:\Users\c8618\AppData\Local\Temp\goa-a4-review-001f94d5299f44a796ba18d58a3df74f\no-flag-action-overlay.json ./internal/minesweeper -run ^TestCrossPlayerUnflagDecrementsOriginalOwner$ -count=1 -v -timeout=30s
+=== RUN   TestCrossPlayerUnflagDecrementsOriginalOwner
+--- PASS: TestCrossPlayerUnflagDecrementsOriginalOwner (0.00s)
+PASS
+ok  	github.com/siyad01/multiplayer-terminal-games/internal/minesweeper	0.341s
+Exit: 0

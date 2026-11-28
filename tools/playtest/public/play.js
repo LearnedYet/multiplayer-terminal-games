@@ -3,6 +3,10 @@ import { action, decodeFrame } from "./wire.js";
 const byId = (id) => document.getElementById(id);
 const ui = {
   connection: byId("connection"),
+  roomBadge: byId("room-badge"),
+  roomToggle: byId("room-toggle"),
+  roomButtons: Array.from(document.querySelectorAll(".room-btn")),
+  inviteSame: byId("invite-same"),
   joinForm: byId("join-form"),
   name: byId("player-name"),
   lobby: byId("lobby"),
@@ -24,8 +28,12 @@ const ui = {
   leave: byId("leave"),
 };
 
+const searchParams = new URLSearchParams(location.search);
+const initialRoom = searchParams.get("room") === "2" ? "2" : "1";
+
 const state = {
   socket: null,
+  room: initialRoom,
   phase: "idle",
   playerId: null,
   hostId: null,
@@ -40,17 +48,18 @@ const state = {
 };
 let rematchTimer;
 
-ui.name.value = (new URLSearchParams(location.search).get("player") || "玩家").slice(0, 15);
+ui.name.value = (searchParams.get("player") || "玩家").slice(0, 15);
 
 function send(bytes) {
   if (state.socket?.readyState !== WebSocket.OPEN) return;
   state.socket.send(bytes);
 }
 
-function connect(name) {
+function connect(name, room) {
   const url = new URL("/ws", location.href);
   url.protocol = location.protocol === "https:" ? "wss:" : "ws:";
   url.searchParams.set("name", name);
+  url.searchParams.set("room", room);
   const socket = new WebSocket(url);
   socket.binaryType = "arraybuffer";
   state.socket = socket;
@@ -261,6 +270,12 @@ function render() {
 
   ui.connection.textContent = connected ? "已连接" : phase === "connecting" ? "连接中…" : "未连接";
   ui.connection.classList.toggle("online", connected);
+  ui.roomBadge.textContent = `${state.room} 号房`;
+  for (const btn of ui.roomButtons) {
+    btn.setAttribute("aria-pressed", btn.dataset.room === state.room ? "true" : "false");
+  }
+  ui.inviteSame.href = `/?player=搭档&room=${state.room}`;
+  ui.inviteSame.innerHTML = `新标签页打开 ${state.room} 号房搭档 <span aria-hidden="true">↗</span>`;
   ui.joinForm.hidden = phase !== "idle";
   ui.leave.hidden = !connected;
   ui.lobby.hidden = showBoard;
@@ -307,8 +322,14 @@ ui.joinForm.addEventListener("submit", (event) => {
     ui.name.reportValidity();
     return;
   }
-  connect(name);
+  connect(name, state.room);
 });
+for (const btn of ui.roomButtons) {
+  btn.addEventListener("click", () => {
+    state.room = btn.dataset.room === "2" ? "2" : "1";
+    render();
+  });
+}
 ui.name.addEventListener("input", () => ui.name.setCustomValidity(""));
 ui.start.addEventListener("click", () => {
   state.startPending = true;
